@@ -60,6 +60,15 @@ const AircraftDetails = () => {
         setLoading(true);
         setError(null);
 
+        // Log environment information for debugging
+        console.log('Environment:', {
+          NODE_ENV: process.env.NODE_ENV,
+          REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+          apiProvider,
+          flightNumber,
+          date
+        });
+
         // Simulate a slight delay for better UX
         await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -67,12 +76,32 @@ const AircraftDetails = () => {
         // Get the base API URL from environment variable or use the current domain
         const baseApiUrl = process.env.REACT_APP_API_URL || '/api';
 
+        // Log the base API URL
+        console.log('Base API URL:', baseApiUrl);
+
         apiEndpoint = apiProvider === 'flightaware'
           ? `${baseApiUrl}/flightaware/aircraft/${flightNumber}/${date}`
           : `${baseApiUrl}/aircraft/${flightNumber}/${date}`;
 
-        const response = await axios.get(apiEndpoint);
-        setAircraftData(response.data);
+        console.log('Making API request to:', apiEndpoint);
+
+        // Add a timeout to the axios request
+        const response = await axios.get(apiEndpoint, {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('API response received:', response.status);
+
+        if (response.data) {
+          console.log('API data received:', JSON.stringify(response.data).substring(0, 100) + '...');
+          setAircraftData(response.data);
+        } else {
+          throw new Error('No data received from API');
+        }
 
         // Complete the progress bar
         setLoadingProgress(100);
@@ -89,9 +118,21 @@ const AircraftDetails = () => {
         console.log('API Endpoint:', apiEndpoint);
         console.log('Error details:', {
           message: err.message,
-          response: err.response,
+          response: err.response ? {
+            status: err.response.status,
+            statusText: err.response.statusText,
+            data: err.response.data
+          } : 'No response',
           stack: err.stack
         });
+
+        // Check if this is a network error (common in Cloudflare environment)
+        if (err.message === 'Network Error' || err.code === 'ECONNABORTED') {
+          console.error('Network error detected - likely a CORS or connectivity issue');
+          setError(`Network error: Unable to connect to the API. This may be due to CORS restrictions or API unavailability.`);
+          setLoading(false);
+          return;
+        }
 
         // Check if this is a future flight date error
         let errorMessage = 'An error occurred while fetching the aircraft data';

@@ -8,6 +8,7 @@ import HomePage from './components/HomePage';
 import AircraftDetails from './components/AircraftDetails';
 import NotFound from './components/NotFound';
 import Footer from './components/Footer';
+import HealthCheck from './components/HealthCheck';
 import './App.css';
 
 // Create a color mode context
@@ -219,6 +220,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/aircraft/:flightNumber/:date" element={<AircraftDetails />} />
               <Route path="/aircraft/:flightNumber/:date/:apiProvider" element={<AircraftDetails />} />
+              <Route path="/health" element={<HealthCheck />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Box>

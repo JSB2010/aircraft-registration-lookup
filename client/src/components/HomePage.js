@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -313,6 +313,18 @@ const HomePage = () => {
             This application uses the AeroDataBox API to retrieve scheduled aircraft information.
             For flights in the near future, you can see which aircraft is assigned to your flight.
           </Typography>
+          <Box mt={2}>
+            <Link to="/health" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                color="primary"
+                sx={{ mt: 1 }}
+              >
+                Check API Status
+              </Button>
+            </Link>
+          </Box>
         </Box>
       </Container>
 
