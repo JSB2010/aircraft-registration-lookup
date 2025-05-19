@@ -1,0 +1,27 @@
+{
+  "name": "future-flight-aircraft",
+  "version": "1.0.0",
+  "description": "Future Flight Aircraft Lookup application with React frontend and Express backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm start",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+    "build": "cd client && npm run build",
+    "build:functions": "mkdir -p .wrangler/tmp/functions && cp -r functions/* .wrangler/tmp/functions/"
+  },
+  "keywords": [
+    "aircraft",
+    "flight",
+    "registration",
+    "react",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

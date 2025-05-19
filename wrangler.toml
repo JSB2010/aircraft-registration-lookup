@@ -1,0 +1,25 @@
+name = "aircraft-register"
+compatibility_date = "2023-12-01"
+
+# Configure Cloudflare Pages
+[site]
+bucket = "./client/build"
+entry-point = "."
+
+# Configure build command
+[build]
+command = "npm run build"
+output_dir = "client/build"
+
+# Configure environment variables
+[vars]
+NODE_VERSION = "18"
+
+# Configure routes
+[routes]
+pattern = "/api/*"
+script = "functions/api/[[path]].js"
+
+# Configure dev environment
+[dev]
+port = 8788
