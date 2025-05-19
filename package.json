@@ -1,7 +1,7 @@
 {
-  "name": "future-flight-aircraft",
+  "name": "aircraft-registration-lookup",
   "version": "1.0.0",
-  "description": "Future Flight Aircraft Lookup application with React frontend and Express backend",
+  "description": "Aircraft Registration Lookup application with React frontend and serverless functions for Cloudflare Pages",
   "main": "index.js",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run client\"",

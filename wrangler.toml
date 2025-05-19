@@ -1,15 +1,15 @@
-name = "aircraft-register"
+name = "aircraft-registration-lookup"
 compatibility_date = "2023-12-01"
 
 # Configure Cloudflare Pages
 [site]
-bucket = "./client/build"
+bucket = "./build"
 entry-point = "."
 
 # Configure build command
 [build]
 command = "npm run build"
-output_dir = "client/build"
+output_dir = "build"
 
 # Configure environment variables
 [vars]
