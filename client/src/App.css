@@ -1,0 +1,158 @@
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+.App {
+  text-align: center;
+}
+
+/* Dark mode background */
+body.dark-mode {
+  background-color: #0f172a; /* Slate 900 */
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)),
+    url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #f8fafc; /* Slate 50 */
+}
+
+/* Light mode background */
+body.light-mode {
+  background-color: #f8fafc; /* Slate 50 */
+  background-image:
+    linear-gradient(rgba(248, 250, 252, 0.85), rgba(248, 250, 252, 0.85)),
+    url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #0f172a; /* Slate 900 */
+}
+
+/* Default to dark mode */
+body {
+  background-color: #0f172a;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)),
+    url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar - Dark mode */
+.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: #1e293b; /* Slate 800 */
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: #6366f1; /* Indigo 500 */
+  border-radius: 8px;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #818cf8; /* Indigo 400 */
+}
+
+/* Custom scrollbar - Light mode */
+.light-mode ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.light-mode ::-webkit-scrollbar-track {
+  background: #e2e8f0; /* Slate 200 */
+}
+
+.light-mode ::-webkit-scrollbar-thumb {
+  background: #4f46e5; /* Indigo 600 */
+  border-radius: 8px;
+}
+
+.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #4338ca; /* Indigo 700 */
+}
+
+/* Default scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6366f1;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #818cf8;
+}
+
+/* Animation for aircraft icon */
+@keyframes flight-animation {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/* Apply animation to aircraft icons */
+.animated-aircraft {
+  animation: flight-animation 3s ease-in-out infinite;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Staggered fade-in for children */
+.staggered-fade-in > * {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.staggered-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.staggered-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.staggered-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.staggered-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+.staggered-fade-in > *:nth-child(5) { animation-delay: 0.5s; }
+
+/* Glass morphism effect */
+.glass-morphism {
+  background: rgba(30, 41, 59, 0.7); /* Slate 800 with opacity */
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.light-mode .glass-morphism {
+  background: rgba(248, 250, 252, 0.7); /* Slate 50 with opacity */
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
