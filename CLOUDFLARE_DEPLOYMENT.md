@@ -21,7 +21,7 @@ In the Cloudflare Pages dashboard, add the following environment variables:
 In the Cloudflare Pages project settings:
 
 1. Set the build command: `npm run build`
-2. Set the build output directory: `client/build`
+2. Set the build output directory: `build`
 3. Set the root directory: `/` (or leave blank)
 4. Add the environment variables mentioned above
 
@@ -33,7 +33,7 @@ With GitHub integration already set up, simply push changes to your repository a
 
 The project has been structured to work with Cloudflare Pages:
 
-- `client/build`: Contains the built React application
+- `build`: Contains the built React application (generated during build)
 - `functions/`: Contains serverless functions for the API endpoints
 - `wrangler.toml`: Configuration for Cloudflare Workers and Pages
 - `client/public/_redirects`: Handles client-side routing
@@ -45,7 +45,11 @@ The project has been structured to work with Cloudflare Pages:
 To test the application locally with Wrangler:
 
 ```bash
-wrangler pages dev client/build --binding RAPIDAPI_KEY=your_key --binding FLIGHTAWARE_API_KEY=your_key
+# First build the client
+npm run build
+
+# Then run the local development server
+wrangler pages dev build --binding RAPIDAPI_KEY=your_key --binding FLIGHTAWARE_API_KEY=your_key
 ```
 
 ## Troubleshooting
