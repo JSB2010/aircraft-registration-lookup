@@ -53,6 +53,9 @@ const AircraftDetails = () => {
     }, 400);
 
     const fetchAircraftData = async () => {
+      // Define apiEndpoint outside the try block so it's accessible in the catch block
+      let apiEndpoint;
+
       try {
         setLoading(true);
         setError(null);
@@ -64,7 +67,7 @@ const AircraftDetails = () => {
         // Get the base API URL from environment variable or use the current domain
         const baseApiUrl = process.env.REACT_APP_API_URL || '/api';
 
-        const apiEndpoint = apiProvider === 'flightaware'
+        apiEndpoint = apiProvider === 'flightaware'
           ? `${baseApiUrl}/flightaware/aircraft/${flightNumber}/${date}`
           : `${baseApiUrl}/aircraft/${flightNumber}/${date}`;
 
