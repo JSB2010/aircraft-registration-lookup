@@ -3,17 +3,20 @@ compatibility_date = "2023-12-01"
 
 # Configure Cloudflare Pages
 [site]
-bucket = "./build"
+bucket = "./client/build"
 entry-point = "."
 
 # Configure build command
 [build]
 command = "npm run build"
-output_dir = "build"
+output_dir = "client/build"
 
 # Configure environment variables
 [vars]
 NODE_VERSION = "18"
+
+# Pages specific configuration
+pages_build_output_dir = "client/build"
 
 # Configure routes
 [routes]
