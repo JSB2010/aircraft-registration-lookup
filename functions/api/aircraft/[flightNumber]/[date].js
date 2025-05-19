@@ -23,7 +23,14 @@ export async function onRequest(context) {
     // Get API key from environment variables
     const RAPIDAPI_KEY = context.env.RAPIDAPI_KEY;
 
+    // Log environment variables for debugging (without exposing the actual keys)
+    console.log('Environment variables available:', {
+      RAPIDAPI_KEY: RAPIDAPI_KEY ? 'Set' : 'Not set',
+      FLIGHTAWARE_API_KEY: context.env.FLIGHTAWARE_API_KEY ? 'Set' : 'Not set'
+    });
+
     if (!RAPIDAPI_KEY) {
+      console.error('RAPIDAPI_KEY not configured');
       return new Response(
         JSON.stringify({
           message: 'API key not configured'
@@ -52,10 +59,24 @@ export async function onRequest(context) {
     );
 
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      const statusText = response.statusText || 'Unknown error';
+      console.error(`API responded with status: ${response.status} (${statusText})`);
+
+      // Try to get more details from the response
+      let errorDetails = '';
+      try {
+        const errorResponse = await response.text();
+        errorDetails = errorResponse;
+        console.error('Error response:', errorResponse);
+      } catch (e) {
+        console.error('Could not parse error response:', e);
+      }
+
+      throw new Error(`API responded with status: ${response.status}. Details: ${errorDetails}`);
     }
 
     const data = await response.json();
+    console.log('API response data:', JSON.stringify(data).substring(0, 200) + '...');
 
     // Check if the flight data contains aircraft information
     if (data && data.length > 0) {
@@ -102,10 +123,12 @@ export async function onRequest(context) {
     }
   } catch (error) {
     console.error('Error fetching aircraft data:', error);
+    console.error('Error stack:', error.stack);
 
     return new Response(
       JSON.stringify({
-        message: 'An error occurred while fetching the aircraft data'
+        message: 'An error occurred while fetching the aircraft data',
+        details: error.message
       }),
       {
         headers,

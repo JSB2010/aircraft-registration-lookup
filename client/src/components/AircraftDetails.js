@@ -82,13 +82,30 @@ const AircraftDetails = () => {
       } catch (err) {
         console.error('Error fetching aircraft data:', err);
 
-        // Check if this is a future flight date error
-        const errorMessage = err.response?.data?.message || 'An error occurred while fetching the aircraft data';
+        // Log detailed error information for debugging
+        console.log('API Endpoint:', apiEndpoint);
+        console.log('Error details:', {
+          message: err.message,
+          response: err.response,
+          stack: err.stack
+        });
 
+        // Check if this is a future flight date error
+        let errorMessage = 'An error occurred while fetching the aircraft data';
+
+        if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+
+        // Check for specific error messages
         if (errorMessage.includes('FlightAware typically only has data for flights within')) {
           setError(`Flight information not available yet. FlightAware typically only provides aircraft data for flights within 7 days of departure.`);
         } else if (errorMessage.includes('aircraft assignment may not be finalized')) {
           setError(`Flight information not available yet. The aircraft assignment may not be finalized this far in advance.`);
+        } else if (errorMessage.includes('API key not configured')) {
+          setError(`API key not configured. Please check the server configuration.`);
         } else if (apiProvider === 'flightaware') {
           // For FlightAware API, provide a more helpful message
           const searchDate = new Date(date);
@@ -106,7 +123,7 @@ const AircraftDetails = () => {
               Try using the AeroDataBox API instead.`);
           }
         } else {
-          setError(errorMessage);
+          setError(`Error: ${errorMessage}. Please try again later or try a different API provider.`);
         }
 
         setLoading(false);
