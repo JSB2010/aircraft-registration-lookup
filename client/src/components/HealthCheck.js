@@ -24,30 +24,48 @@ const HealthCheck = () => {
           REACT_APP_API_URL: process.env.REACT_APP_API_URL
         });
 
-        // First, try a fetch request to see if we get a proper response
+        // First, try a direct fetch request to the API
         try {
-          const fetchResponse = await fetch(healthEndpoint, {
+          // Use a cache-busting query parameter to avoid caching issues
+          const timestamp = new Date().getTime();
+          const fetchResponse = await fetch(`${healthEndpoint}?t=${timestamp}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
             }
           });
 
           console.log('Fetch response status:', fetchResponse.status);
           console.log('Fetch response type:', fetchResponse.headers.get('content-type'));
 
-          // Check if the response is JSON
-          const contentType = fetchResponse.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await fetchResponse.json();
-            console.log('Fetch response data:', data);
-            setHealthData(data);
-            setLoading(false);
-            return;
-          } else {
-            console.log('Fetch response is not JSON, falling back to axios');
+          // Try to parse the response as JSON regardless of content type
+          try {
+            const text = await fetchResponse.text();
+            console.log('Fetch response text (first 100 chars):', text.substring(0, 100));
+
+            // Try to parse as JSON
+            try {
+              const data = JSON.parse(text);
+              console.log('Successfully parsed JSON data:', data);
+              setHealthData(data);
+              setLoading(false);
+              return;
+            } catch (jsonError) {
+              console.error('Failed to parse response as JSON:', jsonError);
+              if (text.includes('<!doctype html>')) {
+                console.error('Response appears to be HTML instead of JSON');
+                throw new Error('API endpoint returned HTML instead of JSON. This indicates a routing issue with Cloudflare Pages.');
+              }
+            }
+          } catch (textError) {
+            console.error('Failed to get response text:', textError);
           }
+
+          console.log('Fetch response is not valid JSON, falling back to axios');
         } catch (fetchError) {
           console.error('Fetch request failed, falling back to axios:', fetchError);
         }

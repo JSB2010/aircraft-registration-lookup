@@ -1,3 +1,6 @@
 # Redirect all routes to index.html for client-side routing except API routes
 /api/*  /api/:splat  200
-/*      /index.html  200
+/home   /index.html  200
+/aircraft/*  /index.html  200
+/health  /index.html  200
+/  /index.html  200

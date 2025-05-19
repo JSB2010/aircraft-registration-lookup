@@ -4,7 +4,3 @@ compatibility_flags = ["nodejs_compat"]
 
 # Pages specific configuration
 pages_build_output_dir = "build"
-
-# Configure Functions
-[functions]
-directory = "functions"
