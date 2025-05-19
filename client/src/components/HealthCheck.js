@@ -19,7 +19,40 @@ const HealthCheck = () => {
         const healthEndpoint = `${baseApiUrl}/health`;
 
         console.log('Checking health at:', healthEndpoint);
+        console.log('Environment:', {
+          NODE_ENV: process.env.NODE_ENV,
+          REACT_APP_API_URL: process.env.REACT_APP_API_URL
+        });
 
+        // First, try a fetch request to see if we get a proper response
+        try {
+          const fetchResponse = await fetch(healthEndpoint, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('Fetch response status:', fetchResponse.status);
+          console.log('Fetch response type:', fetchResponse.headers.get('content-type'));
+
+          // Check if the response is JSON
+          const contentType = fetchResponse.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await fetchResponse.json();
+            console.log('Fetch response data:', data);
+            setHealthData(data);
+            setLoading(false);
+            return;
+          } else {
+            console.log('Fetch response is not JSON, falling back to axios');
+          }
+        } catch (fetchError) {
+          console.error('Fetch request failed, falling back to axios:', fetchError);
+        }
+
+        // Fall back to axios if fetch fails
         const response = await axios.get(healthEndpoint, {
           timeout: 10000, // 10 second timeout
           headers: {
@@ -31,11 +64,12 @@ const HealthCheck = () => {
 
         console.log('Health check response:', response.status);
         console.log('Health data type:', typeof response.data);
+        console.log('Response headers:', response.headers);
 
         // Check if the response is HTML (Cloudflare Pages might return HTML instead of JSON)
         if (typeof response.data === 'string' && response.data.includes('<!doctype html>')) {
           console.error('Received HTML response instead of JSON');
-          throw new Error('API endpoint returned HTML instead of JSON. This may indicate a routing issue with Cloudflare Pages.');
+          throw new Error('API endpoint returned HTML instead of JSON. This may indicate a routing issue with Cloudflare Pages. Try accessing the API directly at ' + healthEndpoint);
         }
 
         console.log('Health data:', response.data);
@@ -43,7 +77,17 @@ const HealthCheck = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error checking health:', err);
-        setError(`Error checking API health: ${err.message}`);
+
+        // Create a more helpful error message
+        let errorMessage = `Error checking API health: ${err.message}`;
+
+        // Add troubleshooting information
+        errorMessage += '\n\nTroubleshooting steps:';
+        errorMessage += '\n1. Check if the API endpoint is correctly configured in Cloudflare Pages';
+        errorMessage += '\n2. Verify that environment variables (API keys) are set in Cloudflare Pages';
+        errorMessage += '\n3. Check browser console for more detailed error information';
+
+        setError(errorMessage);
         setLoading(false);
       }
     };
@@ -60,9 +104,51 @@ const HealthCheck = () => {
   }
 
   if (error) {
+    // Split error message by newlines to display as separate paragraphs
+    const errorLines = error.split('\n');
+
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
-        {error}
+      <Alert
+        severity="error"
+        sx={{
+          mb: 3,
+          '& .MuiAlert-message': {
+            whiteSpace: 'pre-line'
+          }
+        }}
+      >
+        {errorLines.map((line, index) => (
+          <Typography
+            key={`error-line-${index}-${line.substring(0, 10)}`}
+            variant={index === 0 ? "subtitle1" : "body2"}
+            gutterBottom
+          >
+            {line}
+          </Typography>
+        ))}
+
+        <Box mt={2}>
+          <Button
+            variant="outlined"
+            size="small"
+            color="error"
+            component="a"
+            href="/api/health"
+            target="_blank"
+            sx={{ mr: 1 }}
+          >
+            Try Direct API Access
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            component={Link}
+            to="/"
+          >
+            Back to Home
+          </Button>
+        </Box>
       </Alert>
     );
   }

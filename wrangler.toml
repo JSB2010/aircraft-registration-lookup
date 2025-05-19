@@ -1,5 +1,6 @@
 name = "aircraft-registration-lookup"
 compatibility_date = "2023-12-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Configure Cloudflare Pages
 [site]
@@ -18,10 +19,14 @@ NODE_VERSION = "18"
 # Pages specific configuration
 pages_build_output_dir = "build"
 
+# Configure Functions
+[functions]
+directory = "functions"
+
 # Configure routes
-[routes]
+[[routes]]
 pattern = "/api/*"
-script = "functions/api/[[path]].js"
+zone_name = "aircraft-registration-lookup.pages.dev"
 
 # Configure dev environment
 [dev]
