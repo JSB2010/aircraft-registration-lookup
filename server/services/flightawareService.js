@@ -142,6 +142,7 @@ function processFlightData(flightData) {
     departure: {
       airport: flightData.origin?.name || 'Not available',
       scheduledTime: flightData.scheduled_out || 'Not available',
+      actualTime: flightData.actual_out || 'Not available',
       terminal: flightData.origin?.terminal || 'Not available',
       gate: flightData.origin?.gate || 'Not available',
       icao: flightData.origin?.code_icao || 'Not available',
@@ -150,6 +151,7 @@ function processFlightData(flightData) {
     arrival: {
       airport: flightData.destination?.name || 'Not available',
       scheduledTime: flightData.scheduled_in || 'Not available',
+      actualTime: flightData.actual_in || 'Not available',
       terminal: flightData.destination?.terminal || 'Not available',
       gate: flightData.destination?.gate || 'Not available',
       icao: flightData.destination?.code_icao || 'Not available',
@@ -164,7 +166,27 @@ function processFlightData(flightData) {
     },
     speed: flightData.last_position?.groundspeed || 'Not available',
     altitude: flightData.last_position?.altitude || 'Not available',
-    dataSource: 'FlightAware AeroAPI'
+    dataSource: 'FlightAware AeroAPI',
+    // Additional fields
+    aircraftOwner: flightData.owner || 'Not available',
+    operatorIcao: flightData.operator_icao || 'Not available',
+    filedRoute: flightData.route || 'Not available',
+    flightDuration: {
+      scheduled: flightData.scheduled_elapsed_time || 'Not available',
+      actual: flightData.actual_elapsed_time || 'Not available'
+    },
+    delayInfo: {
+      departure: flightData.departure_delay || 'Not available',
+      arrival: flightData.arrival_delay || 'Not available'
+    },
+    baggageClaim: flightData.destination?.baggage_claim || 'Not available',
+    progress: flightData.progress_percent || 'Not available',
+    lastUpdated: flightData.last_position?.timestamp ? new Date(flightData.last_position.timestamp * 1000).toISOString() : 'Not available',
+    position: flightData.last_position ? {
+      latitude: flightData.last_position.latitude || 'Not available',
+      longitude: flightData.last_position.longitude || 'Not available',
+      heading: flightData.last_position.heading || 'Not available'
+    } : null
   };
 
   return aircraftDetails;
@@ -206,7 +228,19 @@ function processScheduledFlightData(scheduledFlight) {
       kilometers: scheduledFlight.route_distance?.kilometers || 'Not available',
       miles: scheduledFlight.route_distance?.miles || 'Not available'
     },
-    dataSource: 'FlightAware AeroAPI (Scheduled)'
+    dataSource: 'FlightAware AeroAPI (Scheduled)',
+    // Additional fields
+    aircraftOwner: scheduledFlight.owner || 'Not available',
+    operatorIcao: scheduledFlight.operator_icao || 'Not available',
+    filedRoute: scheduledFlight.route || 'Not available',
+    flightDuration: {
+      scheduled: scheduledFlight.scheduled_elapsed_time || 'Not available'
+    },
+    delayInfo: {
+      departure: scheduledFlight.departure_delay || 'Not available',
+      arrival: scheduledFlight.arrival_delay || 'Not available'
+    },
+    baggageClaim: scheduledFlight.destination?.baggage_claim || 'Not available'
   };
 
   return aircraftDetails;

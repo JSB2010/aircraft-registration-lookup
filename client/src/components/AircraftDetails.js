@@ -554,6 +554,7 @@ const AircraftDetails = () => {
                 {/* Additional FlightAware data if available */}
                 {aircraftData.dataSource === 'FlightAware AeroAPI' && (
                   <>
+                    {/* First row of additional data */}
                     {aircraftData.aircraftAge && aircraftData.aircraftAge !== 'Not available' && (
                       <Grid item xs={12} sm={6}>
                         <Box
@@ -589,6 +590,226 @@ const AircraftDetails = () => {
                           </Typography>
                           <Typography variant="h6" fontWeight={600}>
                             {aircraftData.distance.kilometers} km ({aircraftData.distance.miles} miles)
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Aircraft Owner/Operator Information */}
+                    {aircraftData.aircraftOwner && aircraftData.aircraftOwner !== 'Not available' && (
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Aircraft Owner
+                          </Typography>
+                          <Typography variant="h6" fontWeight={600}>
+                            {aircraftData.aircraftOwner}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Flight Duration */}
+                    {aircraftData.flightDuration && (
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Flight Duration
+                          </Typography>
+                          <Typography variant="h6" fontWeight={600}>
+                            {aircraftData.flightDuration.scheduled !== 'Not available'
+                              ? `${Math.floor(aircraftData.flightDuration.scheduled / 60)}h ${aircraftData.flightDuration.scheduled % 60}m`
+                              : 'Not available'}
+                          </Typography>
+                          {aircraftData.flightDuration.actual !== 'Not available' && (
+                            <Typography variant="body2" color="text.secondary">
+                              Actual: {Math.floor(aircraftData.flightDuration.actual / 60)}h {aircraftData.flightDuration.actual % 60}m
+                            </Typography>
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Filed Route */}
+                    {aircraftData.filedRoute && aircraftData.filedRoute !== 'Not available' && (
+                      <Grid item xs={12}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Filed Route
+                          </Typography>
+                          <Typography variant="body1" fontWeight={500} sx={{ wordBreak: 'break-word' }}>
+                            {aircraftData.filedRoute}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* In-flight Information */}
+                    {aircraftData.status === 'In Air' && (
+                      <>
+                        {/* Flight Progress */}
+                        {aircraftData.progress && aircraftData.progress !== 'Not available' && (
+                          <Grid item xs={12} sm={6}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                                height: '100%'
+                              }}
+                            >
+                              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Flight Progress
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box sx={{ width: '100%', mr: 1 }}>
+                                  <LinearProgress
+                                    variant="determinate"
+                                    value={parseInt(aircraftData.progress)}
+                                    sx={{ height: 10, borderRadius: 5 }}
+                                  />
+                                </Box>
+                                <Box sx={{ minWidth: 35 }}>
+                                  <Typography variant="body2" color="text.secondary">{`${Math.round(aircraftData.progress)}%`}</Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Grid>
+                        )}
+
+                        {/* Current Speed */}
+                        {aircraftData.speed && aircraftData.speed !== 'Not available' && (
+                          <Grid item xs={12} sm={6}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                                height: '100%'
+                              }}
+                            >
+                              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Current Speed
+                              </Typography>
+                              <Typography variant="h6" fontWeight={600}>
+                                {aircraftData.speed} knots
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        )}
+
+                        {/* Current Altitude */}
+                        {aircraftData.altitude && aircraftData.altitude !== 'Not available' && (
+                          <Grid item xs={12} sm={6}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                                height: '100%'
+                              }}
+                            >
+                              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Current Altitude
+                              </Typography>
+                              <Typography variant="h6" fontWeight={600}>
+                                {aircraftData.altitude} ft
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        )}
+
+                        {/* Last Updated */}
+                        {aircraftData.lastUpdated && aircraftData.lastUpdated !== 'Not available' && (
+                          <Grid item xs={12} sm={6}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                                height: '100%'
+                              }}
+                            >
+                              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Last Updated
+                              </Typography>
+                              <Typography variant="body1" fontWeight={500}>
+                                {formatDateTime(aircraftData.lastUpdated)}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        )}
+                      </>
+                    )}
+
+                    {/* Delay Information */}
+                    {aircraftData.delayInfo && (
+                      (aircraftData.delayInfo.departure !== 'Not available' ||
+                       aircraftData.delayInfo.arrival !== 'Not available') && (
+                        <Grid item xs={12} sm={6}>
+                          <Box
+                            sx={{
+                              p: 2,
+                              borderRadius: 2,
+                              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                              height: '100%'
+                            }}
+                          >
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                              Delay Information
+                            </Typography>
+                            {aircraftData.delayInfo.departure !== 'Not available' && (
+                              <Typography variant="body1" fontWeight={500}>
+                                Departure: {Math.floor(aircraftData.delayInfo.departure / 60)}h {aircraftData.delayInfo.departure % 60}m
+                              </Typography>
+                            )}
+                            {aircraftData.delayInfo.arrival !== 'Not available' && (
+                              <Typography variant="body1" fontWeight={500}>
+                                Arrival: {Math.floor(aircraftData.delayInfo.arrival / 60)}h {aircraftData.delayInfo.arrival % 60}m
+                              </Typography>
+                            )}
+                          </Box>
+                        </Grid>
+                      )
+                    )}
+
+                    {/* Baggage Claim */}
+                    {aircraftData.baggageClaim && aircraftData.baggageClaim !== 'Not available' && (
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Baggage Claim
+                          </Typography>
+                          <Typography variant="h6" fontWeight={600}>
+                            {aircraftData.baggageClaim}
                           </Typography>
                         </Box>
                       </Grid>

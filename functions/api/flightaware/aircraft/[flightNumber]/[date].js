@@ -348,6 +348,56 @@ export async function onRequest(context) {
         if (flightData.last_position?.altitude) {
           result.altitude = flightData.last_position.altitude;
         }
+
+        // Add aircraft owner if available
+        if (flightData.owner) {
+          result.aircraftOwner = flightData.owner;
+        }
+
+        // Add operator ICAO if available
+        if (flightData.operator_icao) {
+          result.operatorIcao = flightData.operator_icao;
+        }
+
+        // Add filed route if available
+        if (flightData.route) {
+          result.filedRoute = flightData.route;
+        }
+
+        // Add flight duration if available
+        result.flightDuration = {
+          scheduled: flightData.scheduled_elapsed_time || 'Not available',
+          actual: flightData.actual_elapsed_time || 'Not available'
+        };
+
+        // Add delay information if available
+        result.delayInfo = {
+          departure: flightData.departure_delay || 'Not available',
+          arrival: flightData.arrival_delay || 'Not available'
+        };
+
+        // Add baggage claim if available
+        if (flightData.destination?.baggage_claim) {
+          result.baggageClaim = flightData.destination.baggage_claim;
+        }
+
+        // Add flight progress if available
+        if (flightData.progress_percent) {
+          result.progress = flightData.progress_percent;
+        }
+
+        // Add position information if available
+        if (flightData.last_position) {
+          result.position = {
+            latitude: flightData.last_position.latitude || 'Not available',
+            longitude: flightData.last_position.longitude || 'Not available',
+            heading: flightData.last_position.heading || 'Not available'
+          };
+
+          if (flightData.last_position.timestamp) {
+            result.lastUpdated = new Date(flightData.last_position.timestamp * 1000).toISOString();
+          }
+        }
       }
 
       return new Response(JSON.stringify(result), {
