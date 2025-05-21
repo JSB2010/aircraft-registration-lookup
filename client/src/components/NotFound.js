@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Typography, Button, Paper, Container, Box, Fade } from '@mui/material';
+import { Typography, Button, Paper, Container, Box, Fade, useTheme } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import HomeIcon from '@mui/icons-material/Home';
 import AirplanemodeActiveIcon from '@mui/icons-material/AirplanemodeActive';
 
 const NotFound = () => {
+  const theme = useTheme();
+
   return (
     <Container maxWidth="md" sx={{ mt: { xs: 6, md: 12 } }}>
       <Fade in={true} timeout={800}>
@@ -66,16 +68,26 @@ const NotFound = () => {
               variant="contained"
               color="primary"
               startIcon={<HomeIcon />}
+              className="modern-button"
               sx={{
-                mt: 2,
-                px: 3,
-                py: 1,
-                borderRadius: 2,
+                mt: 3,
+                px: 4,
+                py: 1.5,
+                borderRadius: '12px',
                 fontWeight: 600,
-                transition: 'all 0.3s ease',
+                fontSize: '1rem',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(45deg, #6366f1 30%, #818cf8 90%)'
+                  : 'linear-gradient(45deg, #4f46e5 30%, #6366f1 90%)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 4px 20px rgba(99, 102, 241, 0.5)'
+                  : '0 4px 20px rgba(79, 70, 229, 0.3)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  transform: 'translateY(-3px)',
-                  boxShadow: '0 6px 12px rgba(0,0,0,0.2)'
+                  transform: 'translateY(-3px) scale(1.02)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 8px 30px rgba(99, 102, 241, 0.6)'
+                    : '0 8px 30px rgba(79, 70, 229, 0.4)',
                 }
               }}
             >

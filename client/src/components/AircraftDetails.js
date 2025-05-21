@@ -34,7 +34,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ColorModeContext } from '../App';
 
 const AircraftDetails = () => {
-  const { flightNumber, date, apiProvider = 'aerodatabox' } = useParams();
+  const { flightNumber, date, apiProvider = 'flightaware' } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
@@ -267,46 +267,190 @@ const AircraftDetails = () => {
   let content;
   if (loading) {
     content = (
-      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" py={8}>
-        <LinearProgress
-          variant="determinate"
-          value={loadingProgress}
-          sx={{ width: '80%', mb: 3, height: 8, borderRadius: 4 }}
-        />
-        <Box display="flex" alignItems="center">
-          <CircularProgress size={24} sx={{ mr: 2 }} />
-          <Typography variant="body1">
-            Loading aircraft data...
+      <Box sx={{ textAlign: 'center', py: 6 }} className="fade-in">
+        <Box
+          sx={{
+            position: 'relative',
+            display: 'inline-block',
+            mb: 3
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '140px',
+              height: '140px',
+              borderRadius: '50%',
+              background: theme.palette.mode === 'dark'
+                ? 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%)'
+                : 'radial-gradient(circle, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0) 70%)',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 0
+            }}
+          />
+          <CircularProgress
+            size={70}
+            thickness={4}
+            sx={{
+              color: theme.palette.primary.main,
+              position: 'relative',
+              zIndex: 1,
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 0 20px rgba(99, 102, 241, 0.3)'
+                : '0 0 20px rgba(79, 70, 229, 0.2)'
+            }}
+          />
+        </Box>
+
+        <Box sx={{ mt: 3, mb: 2 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              background: theme.palette.mode === 'dark'
+                ? 'linear-gradient(45deg, #6366f1 30%, #818cf8 90%)'
+                : 'linear-gradient(45deg, #4f46e5 30%, #6366f1 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Loading Aircraft Information
+          </Typography>
+        </Box>
+
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            maxWidth: '80%',
+            mx: 'auto',
+            mb: 4
+          }}
+        >
+          Retrieving data for flight {flightNumber} on {new Date(date).toLocaleDateString()}
+          {apiProvider === 'flightaware' ? ' from FlightAware' : ' from AeroDataBox'}
+        </Typography>
+
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: '400px',
+            mx: 'auto',
+            px: 2
+          }}
+        >
+          <LinearProgress
+            variant="determinate"
+            value={loadingProgress}
+            sx={{
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.08)'
+                : 'rgba(0, 0, 0, 0.05)',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 4,
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)'
+                  : 'linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)',
+              }
+            }}
+          />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: 'block',
+              textAlign: 'right',
+              mt: 1,
+              opacity: 0.7
+            }}
+          >
+            {loadingProgress}% Complete
           </Typography>
         </Box>
       </Box>
     );
   } else if (error) {
     content = (
-      <Alert
-        severity="error"
-        sx={{
-          mb: 4,
-          p: 2,
-          borderRadius: 2,
-          '& .MuiAlert-icon': {
-            fontSize: '2rem'
-          }
-        }}
-      >
-        <Typography variant="h6" gutterBottom>Unable to find aircraft information</Typography>
-        <Typography variant="body2">{error}</Typography>
-        <Box mt={2}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/')}
+      <Box className="fade-in">
+        <Alert
+          severity="error"
+          sx={{
+            mb: 4,
+            p: 3,
+            borderRadius: 3,
+            '& .MuiAlert-icon': {
+              fontSize: '2.5rem',
+              opacity: 0.8
+            },
+            background: theme.palette.mode === 'dark'
+              ? 'rgba(239, 68, 68, 0.15)'
+              : 'rgba(239, 68, 68, 0.08)',
+            border: theme.palette.mode === 'dark'
+              ? '1px solid rgba(239, 68, 68, 0.3)'
+              : '1px solid rgba(239, 68, 68, 0.2)',
+          }}
+        >
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              color: theme.palette.error.main,
+              mb: 1
+            }}
           >
-            Back to Search
-          </Button>
-        </Box>
-      </Alert>
+            Unable to find aircraft information
+          </Typography>
+
+          <Typography
+            variant="body1"
+            sx={{
+              mb: 3,
+              color: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.8)'
+                : 'rgba(0, 0, 0, 0.7)',
+              lineHeight: 1.6
+            }}
+          >
+            {error}
+          </Typography>
+
+          <Box mt={3}>
+            <Button
+              variant="contained"
+              size="medium"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/')}
+              className="modern-button"
+              sx={{
+                borderRadius: '10px',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(45deg, #6366f1 30%, #818cf8 90%)'
+                  : 'linear-gradient(45deg, #4f46e5 30%, #6366f1 90%)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 4px 12px rgba(99, 102, 241, 0.4)'
+                  : '0 4px 12px rgba(79, 70, 229, 0.3)',
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 6px 16px rgba(99, 102, 241, 0.6)'
+                    : '0 6px 16px rgba(79, 70, 229, 0.4)',
+                }
+              }}
+            >
+              Back to Search
+            </Button>
+          </Box>
+        </Alert>
+      </Box>
     );
   } else {
     content = (
@@ -678,23 +822,107 @@ const AircraftDetails = () => {
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{
+          borderRadius: { sm: '0 0 16px 16px' },
+          backdropFilter: 'blur(10px)',
+          background: theme.palette.mode === 'dark'
+            ? 'rgba(15, 23, 42, 0.8)'
+            : 'rgba(248, 250, 252, 0.8)',
+          borderBottom: theme.palette.mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.05)'
+            : '1px solid rgba(0, 0, 0, 0.05)',
+        }}
+      >
+        <Toolbar sx={{ px: { xs: 2, sm: 4 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate('/')}
             aria-label="back"
-            sx={{ mr: 2 }}
+            sx={{
+              mr: 2,
+              background: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.05)'
+                : 'rgba(0, 0, 0, 0.03)',
+              '&:hover': {
+                background: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(0, 0, 0, 0.05)',
+              }
+            }}
           >
             <ArrowBackIcon />
           </IconButton>
-          <AirplanemodeActiveIcon sx={{ mr: 2 }} className="animated-aircraft" />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            Your Future Flight Aircraft
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              background: theme.palette.mode === 'dark'
+                ? 'linear-gradient(45deg, rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.2))'
+                : 'linear-gradient(45deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.1))',
+              px: 1.5,
+              py: 0.5,
+              borderRadius: '12px',
+            }}
+          >
+            <AirplanemodeActiveIcon
+              sx={{
+                mr: 1.5,
+                color: theme.palette.primary.main,
+                filter: 'drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3))'
+              }}
+              className="animated-aircraft"
+            />
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                fontWeight: 700,
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(45deg, #6366f1 30%, #818cf8 90%)'
+                  : 'linear-gradient(45deg, #4f46e5 30%, #6366f1 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.01em'
+              }}
+            >
+              Flight Details
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="body2"
+            component="div"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 500,
+              ml: 2,
+              display: { xs: 'none', sm: 'block' },
+              color: 'text.secondary'
+            }}
+          >
+            Aircraft Information
           </Typography>
+
           <Tooltip title={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <IconButton onClick={colorMode.toggleColorMode} color="inherit">
+            <IconButton
+              onClick={colorMode.toggleColorMode}
+              color="inherit"
+              sx={{
+                background: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : 'rgba(0, 0, 0, 0.03)',
+                '&:hover': {
+                  background: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.1)'
+                    : 'rgba(0, 0, 0, 0.05)',
+                }
+              }}
+            >
               {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
           </Tooltip>
@@ -710,48 +938,113 @@ const AircraftDetails = () => {
             borderRadius: 3,
           }}
         >
-          <Box mb={4}>
-            <Typography
-              variant="h5"
-              component="h1"
-              gutterBottom
+          <Box mb={5} className="fade-in">
+            <Box
               sx={{
-                fontWeight: 700,
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
                 flexWrap: 'wrap',
-                gap: 1
+                gap: { xs: 1, sm: 2 },
+                mb: 2
               }}
             >
-              <span>Your Flight:</span>
-              <Chip
-                label={flightNumber}
-                color="primary"
+              <Typography
+                variant="h4"
+                component="h1"
                 sx={{
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  height: 32
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(45deg, #6366f1 30%, #818cf8 90%)'
+                    : 'linear-gradient(45deg, #4f46e5 30%, #6366f1 90%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mr: 1
                 }}
-              />
-              <span>on</span>
-              <Chip
-                label={new Date(date).toLocaleDateString()}
-                variant="outlined"
-                sx={{ fontWeight: 500 }}
-              />
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Data provided by:
+              >
+                Flight {flightNumber}
               </Typography>
-              <Chip
-                label={apiProvider === 'flightaware' ? 'FlightAware API' : 'AeroDataBox API'}
-                size="small"
-                variant="outlined"
-                sx={{ ml: 1, fontSize: '0.75rem' }}
-              />
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <Chip
+                  label={new Date(date).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 500,
+                    borderRadius: '8px',
+                    background: theme.palette.mode === 'dark'
+                      ? 'rgba(99, 102, 241, 0.1)'
+                      : 'rgba(79, 70, 229, 0.05)',
+                    borderColor: theme.palette.mode === 'dark'
+                      ? 'rgba(99, 102, 241, 0.3)'
+                      : 'rgba(79, 70, 229, 0.2)',
+                  }}
+                  icon={<AccessTimeIcon fontSize="small" />}
+                />
+
+                <Chip
+                  label={apiProvider === 'flightaware' ? 'FlightAware Data' : 'AeroDataBox Data'}
+                  size="small"
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: '0.75rem',
+                    borderRadius: '8px',
+                    background: apiProvider === 'flightaware'
+                      ? theme.palette.mode === 'dark'
+                        ? 'rgba(99, 102, 241, 0.15)'
+                        : 'rgba(79, 70, 229, 0.1)'
+                      : theme.palette.mode === 'dark'
+                        ? 'rgba(236, 72, 153, 0.15)'
+                        : 'rgba(219, 39, 119, 0.1)',
+                    color: apiProvider === 'flightaware'
+                      ? theme.palette.mode === 'dark'
+                        ? '#818cf8'
+                        : '#4f46e5'
+                      : theme.palette.mode === 'dark'
+                        ? '#f472b6'
+                        : '#db2777',
+                    border: apiProvider === 'flightaware'
+                      ? `1px solid ${theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.3)' : 'rgba(79, 70, 229, 0.2)'}`
+                      : `1px solid ${theme.palette.mode === 'dark' ? 'rgba(236, 72, 153, 0.3)' : 'rgba(219, 39, 119, 0.2)'}`,
+                  }}
+                />
+              </Box>
             </Box>
-            <Divider sx={{ my: 2 }} />
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mb: 3,
+                maxWidth: { xs: '100%', sm: '90%', md: '80%' },
+                lineHeight: 1.6
+              }}
+            >
+              Detailed information about your flight and the assigned aircraft.
+              All data is provided by {apiProvider === 'flightaware' ? 'FlightAware' : 'AeroDataBox'} API.
+            </Typography>
+
+            <Divider
+              sx={{
+                mb: 3,
+                borderColor: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : 'rgba(0, 0, 0, 0.06)',
+              }}
+            />
           </Box>
 
           {content}
