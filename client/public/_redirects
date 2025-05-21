@@ -6,6 +6,9 @@
 /home   /index.html  200
 /health  /index.html  200
 
-# Then handle all other routes
+# Then handle specific routes with parameters
 /aircraft/:path  /index.html  200
-/*  /index.html  200
+
+# Fallback route - exclude index.html to avoid infinite loops
+/* /index.html 200
+!/index.html
