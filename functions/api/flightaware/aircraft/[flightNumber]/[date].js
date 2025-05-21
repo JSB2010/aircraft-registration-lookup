@@ -87,8 +87,15 @@ export async function onRequest(context) {
       );
 
       if (response.ok) {
-        data = await response.json();
+        const searchData = await response.json();
         console.log('FlightAware flights endpoint successful');
+
+        // Check if we have flights in the response
+        if (searchData && searchData.flights && searchData.flights.length > 0) {
+          data = searchData;
+        } else {
+          console.log('No flights found in search response');
+        }
       } else {
         const statusText = response.statusText || 'Unknown error';
         console.error(`FlightAware flights endpoint responded with status: ${response.status} (${statusText})`);
@@ -135,17 +142,41 @@ export async function onRequest(context) {
           if (response.ok) {
             const airlineData = await response.json();
             console.log('FlightAware airline info endpoint successful');
+            console.log('Airline data:', JSON.stringify(airlineData).substring(0, 200) + '...');
 
             // Filter flights by flight number
             if (airlineData && airlineData.flights) {
-              const matchingFlights = airlineData.flights.filter(flight =>
-                flight.ident.replace(/^[A-Z]+/i, '') === flightNumberOnly
-              );
+              console.log(`Total flights for airline: ${airlineData.flights.length}`);
+
+              // Log the flight number we're looking for
+              console.log(`Looking for flight number: ${flightNumberOnly}`);
+
+              // First try exact match
+              let matchingFlights = airlineData.flights.filter(flight => {
+                const flightIdent = flight.ident || '';
+                const flightIdentNumber = flightIdent.replace(/^[A-Z]+/i, '');
+                return flightIdentNumber === flightNumberOnly;
+              });
+
+              // If no exact matches, try partial match
+              if (matchingFlights.length === 0) {
+                matchingFlights = airlineData.flights.filter(flight => {
+                  const flightIdent = flight.ident || '';
+                  return flightIdent.includes(flightNumberOnly);
+                });
+              }
 
               if (matchingFlights.length > 0) {
                 data = { flights: matchingFlights };
                 console.log(`Found ${matchingFlights.length} matching flights`);
+
+                // Log the first matching flight
+                console.log('First matching flight:', JSON.stringify(matchingFlights[0]).substring(0, 200) + '...');
+              } else {
+                console.log('No matching flights found');
               }
+            } else {
+              console.log('No flights data in airline response');
             }
           } else {
             const statusText = response.statusText || 'Unknown error';
@@ -250,7 +281,9 @@ export async function onRequest(context) {
       let message = `No flight data found for ${flightNumber} on ${formattedDate}`;
 
       // Try to provide a helpful message based on the API errors
-      if (apiError && apiError.includes('Invalid argument')) {
+      if (apiError && apiError.includes('Undisclosed')) {
+        message += `. The FlightAware API returned an error. This might be due to API rate limits or authentication issues. Please try again later or use the AeroDataBox API instead.`;
+      } else if (apiError && apiError.includes('Invalid argument')) {
         message += `. The FlightAware API reported an issue with the date format. Please try a different date format or use the AeroDataBox API instead.`;
       } else if (apiError && apiError.includes('Internal error')) {
         message += `. The FlightAware API reported an internal error. This might be a temporary issue. Please try again later or use the AeroDataBox API instead.`;
