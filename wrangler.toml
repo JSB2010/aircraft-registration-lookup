@@ -7,6 +7,6 @@ pages_build_output_dir = "build"
 
 # Configure environment variables
 # These are placeholder values that will be overridden by the values set in the Cloudflare Pages dashboard
-# [vars]
-# RAPIDAPI_KEY = "placeholder"
-# FLIGHTAWARE_API_KEY = "placeholder"
+[vars]
+RAPIDAPI_KEY = "placeholder"
+FLIGHTAWARE_API_KEY = "placeholder"

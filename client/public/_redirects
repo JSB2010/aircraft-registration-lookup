@@ -2,8 +2,10 @@
 # For Cloudflare Pages, the API routes are handled by Cloudflare Functions
 /api/*  /api/:splat  200
 
-# All other routes should serve the index.html file for client-side routing
+# Specific routes first (more performant)
 /home   /index.html  200
-/aircraft/*  /index.html  200
 /health  /index.html  200
+
+# Then handle all other routes
+/aircraft/:path  /index.html  200
 /*  /index.html  200
