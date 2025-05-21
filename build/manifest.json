@@ -1,0 +1,38 @@
+{
+  "short_name": "Flight Aircraft",
+  "name": "Future Flight Aircraft Lookup",
+  "description": "Find out which aircraft you'll be flying on for your upcoming flights",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#6366f1",
+  "background_color": "#0f172a",
+  "categories": ["travel", "aviation", "utilities"],
+  "screenshots": [
+    {
+      "src": "screenshot1.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg"
+    }
+  ]
+}

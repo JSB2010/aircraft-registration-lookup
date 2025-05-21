@@ -74,7 +74,16 @@ const AircraftDetails = () => {
 
         // Use the appropriate API endpoint based on the selected provider
         // Get the base API URL from environment variable or use the current domain
-        const baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        // For production builds, we need to ensure we're using the correct API URL
+        let baseApiUrl;
+
+        if (process.env.NODE_ENV === 'production') {
+          // In production, use the relative path for Cloudflare Pages Functions
+          baseApiUrl = '/api';
+        } else {
+          // In development, use the environment variable or default to relative path
+          baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        }
 
         // Log the base API URL
         console.log('Base API URL:', baseApiUrl);
@@ -95,6 +104,12 @@ const AircraftDetails = () => {
         });
 
         console.log('API response received:', response.status);
+
+        // Check if the response is HTML (which would indicate a routing issue)
+        if (typeof response.data === 'string' && response.data.includes('<!doctype html>')) {
+          console.error('Received HTML response instead of JSON');
+          throw new Error('API endpoint returned HTML instead of JSON. This indicates a routing issue with the static server or Cloudflare Pages.');
+        }
 
         if (response.data) {
           console.log('API data received:', JSON.stringify(response.data).substring(0, 100) + '...');

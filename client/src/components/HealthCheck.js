@@ -15,7 +15,17 @@ const HealthCheck = () => {
         setError(null);
 
         // Get the base API URL from environment variable or use the current domain
-        const baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        // For production builds, we need to ensure we're using the correct API URL
+        let baseApiUrl;
+
+        if (process.env.NODE_ENV === 'production') {
+          // In production, use the relative path for Cloudflare Pages Functions
+          baseApiUrl = '/api';
+        } else {
+          // In development, use the environment variable or default to relative path
+          baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        }
+
         const healthEndpoint = `${baseApiUrl}/health`;
 
         console.log('Checking health at:', healthEndpoint);

@@ -9,8 +9,12 @@
     "client": "cd client && npm start",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
-    "build": "cd client && npm install && npm run build && mkdir -p ../build && cp -r build/* ../build/",
-    "build:functions": "mkdir -p .wrangler/tmp/functions && cp -r functions/* .wrangler/tmp/functions/"
+    "build": "cd client && npm install && npm run build && mkdir -p ../build && cp -r build/* ../build/ && mkdir -p ../build/functions && cp -r ../functions/* ../build/functions/",
+    "build:functions": "mkdir -p .wrangler/tmp/functions && cp -r functions/* .wrangler/tmp/functions/",
+    "serve": "concurrently \"npm run server\" \"npx serve -s build\"",
+    "serve:prod": "cd build && npx serve -s --config serve.json",
+    "prod": "node production-server.js",
+    "deploy": "npm run build && wrangler pages deploy build"
   },
   "keywords": [
     "aircraft",
@@ -21,6 +25,12 @@
   ],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

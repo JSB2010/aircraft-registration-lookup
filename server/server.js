@@ -1,3 +1,5 @@
+// Load environment variables from root directory first, then from server directory
+require('dotenv').config({ path: '../.env.local' });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -33,7 +35,19 @@ const cache = {
 };
 
 // Middleware
-app.use(cors());
+// Configure CORS to allow requests from all origins in development
+// and specific origins in production
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://aircraft-registration-lookup.pages.dev', 'http://localhost:3000', 'http://localhost:5000']
+    : '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true
+}));
+
+// Add CORS preflight handling
+app.options('*', cors());
 app.use(express.json());
 
 // Add request logging middleware
@@ -216,14 +230,32 @@ app.get('/api/flightaware/aircraft/:flightNumber/:date', async (req, res) => {
 
 // Server health check route
 app.get('/api/health', (req, res) => {
+  // Log the request headers for debugging
+  console.log('Health check request headers:', req.headers);
+
   res.json({
     status: 'UP',
     message: 'Server is running!',
     version: '1.1.0',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
     apis: {
       aerodatabox: process.env.RAPIDAPI_KEY ? 'configured' : 'not configured',
       flightaware: process.env.FLIGHTAWARE_API_KEY ? 'configured' : 'not configured'
+    },
+    request: {
+      url: req.originalUrl,
+      method: req.method,
+      headers: {
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer
+      }
+    },
+    server: {
+      port: PORT,
+      platform: process.platform,
+      nodeVersion: process.version
     }
   });
 });
