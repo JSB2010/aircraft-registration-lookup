@@ -9,7 +9,7 @@
     "client": "cd client && npm start",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
-    "build": "cd client && npm install && npm run build && mkdir -p ../build && cp -r build/* ../build/ && mkdir -p ../build/functions && cp -r ../functions/* ../build/functions/",
+    "build": "cd client && npm install && npm run build && mkdir -p ../build && cp -r build/* ../build/ && cp -r ../functions/* ../build/",
     "build:functions": "mkdir -p .wrangler/tmp/functions && cp -r functions/* .wrangler/tmp/functions/",
     "serve": "concurrently \"npm run server\" \"npx serve -s build\"",
     "serve:prod": "cd build && npx serve -s --config serve.json",

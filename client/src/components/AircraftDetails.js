@@ -52,6 +52,43 @@ const AircraftDetails = () => {
       });
     }, 400);
 
+    const checkApiAvailability = async () => {
+      try {
+        // Get the base API URL
+        let baseApiUrl;
+        if (process.env.NODE_ENV === 'production') {
+          // In production, use the relative path for Cloudflare Pages Functions
+          baseApiUrl = '/api';
+        } else {
+          // In development, use the environment variable or default to relative path
+          baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        }
+
+        // First check if the test API endpoint is working
+        const testEndpoint = `${baseApiUrl}/test`;
+        console.log('Testing API availability with:', testEndpoint);
+
+        const testResponse = await axios.get(testEndpoint, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          timeout: 5000 // 5 second timeout
+        });
+
+        console.log('API test response:', testResponse.status, testResponse.data);
+
+        if (testResponse.status !== 200 || !testResponse.data || !testResponse.data.status) {
+          throw new Error('API test endpoint not working properly');
+        }
+
+        return { success: true, baseApiUrl };
+      } catch (err) {
+        console.error('API test failed:', err);
+        return { success: false, error: err.message };
+      }
+    };
+
     const fetchAircraftData = async () => {
       // Define apiEndpoint outside the try block so it's accessible in the catch block
       let apiEndpoint;
@@ -72,18 +109,15 @@ const AircraftDetails = () => {
         // Simulate a slight delay for better UX
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Use the appropriate API endpoint based on the selected provider
-        // Get the base API URL from environment variable or use the current domain
-        // For production builds, we need to ensure we're using the correct API URL
-        let baseApiUrl;
+        // Check if API is available
+        const apiCheck = await checkApiAvailability();
 
-        if (process.env.NODE_ENV === 'production') {
-          // In production, use the relative path for Cloudflare Pages Functions
-          baseApiUrl = '/api';
-        } else {
-          // In development, use the environment variable or default to relative path
-          baseApiUrl = process.env.REACT_APP_API_URL || '/api';
+        if (!apiCheck.success) {
+          throw new Error(`API service is not available. This may be due to a deployment issue with Cloudflare Pages Functions. Error: ${apiCheck.error}`);
         }
+
+        // Use the baseApiUrl from the API check
+        const baseApiUrl = apiCheck.baseApiUrl;
 
         // Log the base API URL
         console.log('Base API URL:', baseApiUrl);
