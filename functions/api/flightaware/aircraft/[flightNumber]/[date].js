@@ -65,20 +65,19 @@ export async function onRequest(context) {
     // FlightAware API endpoint
     const FLIGHTAWARE_API_URL = 'https://aeroapi.flightaware.com/aeroapi';
 
-    // Log the API request details
-    const apiUrl = `${FLIGHTAWARE_API_URL}/flights/${flightNumber}?date=${formattedDate}`;
-    console.log('FlightAware API request URL:', apiUrl);
-
-    // Try different API endpoints if the first one fails
+    // Try different approaches for the FlightAware API
     let response;
     let data;
     let apiError = null;
 
-    // First try the flights endpoint
+    // First try searching by flight number without date
     try {
-      console.log('Trying FlightAware flights endpoint...');
+      console.log('Trying FlightAware search endpoint...');
+      const searchUrl = `${FLIGHTAWARE_API_URL}/flights/search?query=${flightNumber}`;
+      console.log('FlightAware search API request URL:', searchUrl);
+
       response = await fetch(
-        apiUrl,
+        searchUrl,
         {
           method: 'GET',
           headers: {
@@ -111,46 +110,67 @@ export async function onRequest(context) {
       apiError = `Error calling FlightAware flights endpoint: ${error.message}`;
     }
 
-    // If the flights endpoint failed, try the scheduled flights endpoint
+    // If the search endpoint failed, try the airline info endpoint
     if (!data && apiError) {
       try {
-        console.log('Trying FlightAware scheduled flights endpoint...');
-        const scheduledApiUrl = `${FLIGHTAWARE_API_URL}/schedules/${flightNumber}?date=${formattedDate}`;
-        console.log('FlightAware scheduled API request URL:', scheduledApiUrl);
+        console.log('Trying FlightAware airline info endpoint...');
+        // Extract airline code from flight number (e.g., UA from UA465)
+        const airlineCode = flightNumber.match(/^[A-Z]+/i)?.[0] || '';
+        const flightNumberOnly = flightNumber.replace(/^[A-Z]+/i, '');
 
-        response = await fetch(
-          scheduledApiUrl,
-          {
-            method: 'GET',
-            headers: {
-              'x-apikey': FLIGHTAWARE_API_KEY
+        if (airlineCode && flightNumberOnly) {
+          const airlineInfoUrl = `${FLIGHTAWARE_API_URL}/operators/${airlineCode}/flights`;
+          console.log('FlightAware airline info API request URL:', airlineInfoUrl);
+
+          response = await fetch(
+            airlineInfoUrl,
+            {
+              method: 'GET',
+              headers: {
+                'x-apikey': FLIGHTAWARE_API_KEY
+              }
             }
-          }
-        );
+          );
 
-        if (response.ok) {
-          data = await response.json();
-          console.log('FlightAware scheduled flights endpoint successful');
+          if (response.ok) {
+            const airlineData = await response.json();
+            console.log('FlightAware airline info endpoint successful');
+
+            // Filter flights by flight number
+            if (airlineData && airlineData.flights) {
+              const matchingFlights = airlineData.flights.filter(flight =>
+                flight.ident.replace(/^[A-Z]+/i, '') === flightNumberOnly
+              );
+
+              if (matchingFlights.length > 0) {
+                data = { flights: matchingFlights };
+                console.log(`Found ${matchingFlights.length} matching flights`);
+              }
+            }
+          } else {
+            const statusText = response.statusText || 'Unknown error';
+            console.error(`FlightAware airline info endpoint responded with status: ${response.status} (${statusText})`);
+
+            // Try to get more details from the response
+            let errorDetails = '';
+            try {
+              const errorResponse = await response.text();
+              errorDetails = errorResponse;
+              console.error('Error response:', errorResponse);
+            } catch (e) {
+              console.error('Could not parse error response:', e);
+            }
+
+            // Append this error to the previous one
+            apiError += ` | FlightAware airline info endpoint responded with status: ${response.status}. Details: ${errorDetails}`;
+          }
         } else {
-          const statusText = response.statusText || 'Unknown error';
-          console.error(`FlightAware scheduled flights endpoint responded with status: ${response.status} (${statusText})`);
-
-          // Try to get more details from the response
-          let errorDetails = '';
-          try {
-            const errorResponse = await response.text();
-            errorDetails = errorResponse;
-            console.error('Error response:', errorResponse);
-          } catch (e) {
-            console.error('Could not parse error response:', e);
-          }
-
-          // Append this error to the previous one
-          apiError += ` | FlightAware scheduled flights endpoint responded with status: ${response.status}. Details: ${errorDetails}`;
+          console.error('Could not extract airline code from flight number:', flightNumber);
+          apiError += ` | Could not extract airline code from flight number: ${flightNumber}`;
         }
       } catch (error) {
-        console.error('Error calling FlightAware scheduled flights endpoint:', error);
-        apiError += ` | Error calling FlightAware scheduled flights endpoint: ${error.message}`;
+        console.error('Error calling FlightAware airline info endpoint:', error);
+        apiError += ` | Error calling FlightAware airline info endpoint: ${error.message}`;
       }
     }
 
@@ -164,18 +184,28 @@ export async function onRequest(context) {
 
     // Process the data based on which endpoint was successful
     let flightData = null;
-    let isScheduledData = false;
 
-    // Check if we have flight data
+    // Check if we have flight data from search or airline info
     if (data && data.flights && data.flights.length > 0) {
-      flightData = data.flights[0]; // Taking the first matching flight
-      console.log('Using data from flights endpoint');
-    }
-    // Check if we have scheduled flight data
-    else if (data && data.scheduled && data.scheduled.length > 0) {
-      flightData = data.scheduled[0]; // Taking the first matching scheduled flight
-      isScheduledData = true;
-      console.log('Using data from scheduled flights endpoint');
+      // Find the flight that best matches our date
+      const targetDate = new Date(formattedDate);
+      let bestMatch = data.flights[0];
+      let bestMatchDiff = Infinity;
+
+      for (const flight of data.flights) {
+        // Try to find a flight with a date close to our target date
+        const flightDate = new Date(flight.scheduled_out || flight.estimated_out || flight.filed_departure_time?.epoch * 1000 || 0);
+        if (flightDate.getTime() > 0) {
+          const dateDiff = Math.abs(flightDate.getTime() - targetDate.getTime());
+          if (dateDiff < bestMatchDiff) {
+            bestMatch = flight;
+            bestMatchDiff = dateDiff;
+          }
+        }
+      }
+
+      flightData = bestMatch;
+      console.log('Using data from search/airline info endpoint');
     }
 
     if (flightData) {
@@ -185,31 +215,23 @@ export async function onRequest(context) {
         airline: flightData.operator || flightData.operator_name || 'Unknown Airline',
         registration: flightData.registration || 'Not available',
         model: flightData.aircraft_type || 'Not available',
-        status: isScheduledData ? 'Scheduled' : getFlightStatus(flightData),
+        status: getFlightStatus(flightData),
         departure: {
-          airport: isScheduledData
-            ? flightData.origin?.name || flightData.origin?.airport_name || 'Unknown'
-            : flightData.origin?.name || 'Unknown',
+          airport: flightData.origin?.name || flightData.origin_name || 'Unknown',
           terminal: flightData.origin?.terminal || 'Not available',
           gate: flightData.origin?.gate || 'Not available',
-          scheduledTime: isScheduledData
-            ? flightData.departuretime || null
-            : flightData.scheduled_out || null,
-          actualTime: isScheduledData ? null : flightData.actual_out || null
+          scheduledTime: flightData.scheduled_out || flightData.filed_departure_time?.epoch * 1000 || null,
+          actualTime: flightData.actual_out || null
         },
         arrival: {
-          airport: isScheduledData
-            ? flightData.destination?.name || flightData.destination?.airport_name || 'Unknown'
-            : flightData.destination?.name || 'Unknown',
+          airport: flightData.destination?.name || flightData.destination_name || 'Unknown',
           terminal: flightData.destination?.terminal || 'Not available',
           gate: flightData.destination?.gate || 'Not available',
-          scheduledTime: isScheduledData
-            ? flightData.arrivaltime || null
-            : flightData.scheduled_in || null,
-          actualTime: isScheduledData ? null : flightData.actual_in || null
+          scheduledTime: flightData.scheduled_in || flightData.filed_arrival_time?.epoch * 1000 || null,
+          actualTime: flightData.actual_in || null
         },
         dataSource: 'FlightAware AeroAPI',
-        aircraftAge: isScheduledData ? 'Not available' : getAircraftAge(flightData)
+        aircraftAge: getAircraftAge(flightData)
       };
 
       return new Response(JSON.stringify(result), {
@@ -227,7 +249,12 @@ export async function onRequest(context) {
 
       let message = `No flight data found for ${flightNumber} on ${formattedDate}`;
 
-      if (daysInFuture > 7) {
+      // Try to provide a helpful message based on the API errors
+      if (apiError && apiError.includes('Invalid argument')) {
+        message += `. The FlightAware API reported an issue with the date format. Please try a different date format or use the AeroDataBox API instead.`;
+      } else if (apiError && apiError.includes('Internal error')) {
+        message += `. The FlightAware API reported an internal error. This might be a temporary issue. Please try again later or use the AeroDataBox API instead.`;
+      } else if (daysInFuture > 7) {
         message += `. This flight is ${daysInFuture} days in the future. FlightAware may not have data for flights more than 7 days ahead.`;
       } else if (daysInFuture > 0) {
         message += `. This flight is ${daysInFuture} days in the future. Please check again closer to the departure date.`;
