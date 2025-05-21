@@ -13,8 +13,8 @@ This document provides instructions for deploying the Aircraft Registration Look
 
 In the Cloudflare Pages dashboard, add the following environment variables:
 
-- `RAPIDAPI_KEY`: Your RapidAPI key for AeroDataBox API (value: `11ab95ec46msh4459e629d651712p112176jsn4f61ccdae41f`)
-- `FLIGHTAWARE_API_KEY`: Your FlightAware API key (value: `yRPAuSRCQyOGwRSGt7CHNOBNCLRjdRco`)
+- `RAPIDAPI_KEY`: Your RapidAPI key for AeroDataBox API (check the .env.local file for the value)
+- `FLIGHTAWARE_API_KEY`: Your FlightAware API key (check the .env.local file for the value)
 
 **Important**: These environment variables need to be added to both:
 - Production environment
@@ -92,7 +92,7 @@ wrangler pages dev build --binding RAPIDAPI_KEY=your_key --binding FLIGHTAWARE_A
 ### Environment Variable Issues
 
 - Make sure the environment variables are set for both production and preview environments
-- The API keys should be set exactly as provided in this document
+- The API keys should be set exactly as provided in the .env.local file
 
 ## Additional Resources
 
