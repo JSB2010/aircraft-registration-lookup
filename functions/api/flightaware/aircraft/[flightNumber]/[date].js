@@ -321,42 +321,6 @@ export async function onRequest(context) {
     }
 
     return new Response(JSON.stringify(result), { headers, status: 200 });
-
-  } else { // This else corresponds to if (!finalFlightData) after all attempts
-      console.log(`No flight data ultimately found for ${flightNumber} on ${formattedDate} after all attempts.`);
-
-      // Check if the date is in the future
-      const searchDate = new Date(formattedDate);
-      const currentDate = new Date();
-      const daysInFuture = Math.ceil((searchDate - currentDate) / (1000 * 60 * 60 * 24));
-
-      let message = `No flight data found for ${flightNumber} on ${formattedDate}`;
-
-      // Try to provide a helpful message based on the API errors
-      if (apiError && apiError.includes('Undisclosed')) {
-        message += `. The FlightAware API returned an error. This might be due to API rate limits or authentication issues. Please try again later or use the AeroDataBox API instead.`;
-      } else if (apiError && apiError.includes('Invalid argument')) {
-        message += `. The FlightAware API reported an issue with the date format. Please try a different date format or use the AeroDataBox API instead.`;
-      } else if (apiError && apiError.includes('Internal error')) {
-        message += `. The FlightAware API reported an internal error. This might be a temporary issue. Please try again later or use the AeroDataBox API instead.`;
-      } else if (daysInFuture > 7) {
-        message += `. This flight is ${daysInFuture} days in the future. FlightAware may not have data for flights more than 7 days ahead.`;
-      } else if (daysInFuture > 0) {
-        message += `. This flight is ${daysInFuture} days in the future. Please check again closer to the departure date.`;
-      } else if (daysInFuture < 0) {
-        message += `. This flight was ${Math.abs(daysInFuture)} days in the past. The data may no longer be available.`;
-      }
-
-      return new Response(
-        JSON.stringify({
-          message: message
-        }),
-        {
-          headers,
-          status: 404
-        }
-      );
-    }
   } catch (error) {
     console.error('Error fetching aircraft data from FlightAware:', error);
     console.error('Error stack:', error.stack);
