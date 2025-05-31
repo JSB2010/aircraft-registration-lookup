@@ -190,7 +190,7 @@ const HomePage = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ mt: { xs: 4, md: 8 }, mb: 4 }}>
+      <Container component="main" maxWidth="md" sx={{ mt: { xs: 4, md: 8 }, mb: 4 }}>
         <Fade in={true} timeout={800}>
           <Paper
             elevation={3}
@@ -286,6 +286,7 @@ const HomePage = () => {
                       value={flightNumber}
                       onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
                       placeholder="e.g. BA123"
+                      aria-describedby={errors.flightNumber ? "flight-number-helper-text" : undefined}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -324,7 +325,7 @@ const HomePage = () => {
                       fullWidth
                     />
                     {errors.flightNumber && (
-                      <FormHelperText sx={{ ml: 1.5 }}>
+                      <FormHelperText id="flight-number-helper-text" sx={{ ml: 1.5 }}>
                         Please enter a valid flight number (e.g., BA123)
                       </FormHelperText>
                     )}
@@ -339,6 +340,7 @@ const HomePage = () => {
                       onChange={(newDate) => setDate(newDate)}
                       slotProps={{
                         textField: {
+                          id: "flight-date",
                           fullWidth: true,
                           required: true,
                           variant: "outlined",
@@ -405,10 +407,19 @@ const HomePage = () => {
                   sx={{
                     position: 'absolute',
                     right: 0,
-                    bottom: -30,
-                    opacity: 0.6
+                    bottom: -30, // Adjust as needed if icon makes it too crowded
+                    opacity: 0.8, // Slightly more visible
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
+                  <Tooltip
+                    title="Switch between primary (FlightAware) and backup (AeroDataBox) data sources for flight information."
+                    placement="top-start"
+                    arrow
+                  >
+                    <InfoIcon fontSize="small" sx={{ color: 'text.secondary', mr: 0.5, opacity: 0.7 }} />
+                  </Tooltip>
                   <Button
                     size="small"
                     color="inherit"
@@ -418,10 +429,14 @@ const HomePage = () => {
                     sx={{
                       fontSize: '0.7rem',
                       textTransform: 'none',
-                      color: 'text.secondary'
+                      color: 'text.secondary',
+                      '&:hover': {
+                        opacity: 1,
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
+                      }
                     }}
                   >
-                    {apiProvider === 'flightaware' ? 'Switch to AeroDataBox (backup)' : 'Switch to FlightAware'}
+                    {apiProvider === 'flightaware' ? 'Use AeroDataBox (backup)' : 'Use FlightAware (primary)'}
                   </Button>
                 </Box>
               </Box>
@@ -461,9 +476,10 @@ const HomePage = () => {
             </Box>
 
             {recentSearches.length > 0 && (
-              <Box mt={6} className="fade-in">
+              <Box component="section" aria-labelledby="recent-searches-title" mt={6} className="fade-in">
                 <Divider sx={{ mb: 3 }}>
                   <Typography
+                    id="recent-searches-title"
                     variant="subtitle2"
                     color="text.secondary"
                     sx={{
@@ -486,6 +502,9 @@ const HomePage = () => {
                     <Grid item xs={12} sm={6} md={4} key={`${search.flightNumber}-${search.date}-${index}`}>
                       <Card
                         className="glass-morphism"
+                        tabIndex={0} // Make card focusable
+                        role="button" // Indicate it's interactive
+                        aria-label={`Search for flight ${search.flightNumber} on ${new Date(search.date).toLocaleDateString()}`}
                         sx={{
                           cursor: 'pointer',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -494,6 +513,17 @@ const HomePage = () => {
                           position: 'relative',
                           '&:hover': {
                             transform: 'translateY(-4px) scale(1.02)',
+                            boxShadow: theme.palette.mode === 'dark'
+                               ? '0 8px 30px rgba(99, 102, 241, 0.3)'
+                               : '0 8px 30px rgba(79, 70, 229, 0.2)',
+                          },
+                          '&:focus-visible': { // Style for keyboard focus
+                            outline: `2px solid ${theme.palette.primary.main}`,
+                            outlineOffset: '2px',
+                            transform: 'translateY(-4px) scale(1.02)', // Consistent with hover
+                            boxShadow: theme.palette.mode === 'dark'
+                               ? '0 8px 30px rgba(99, 102, 241, 0.3)'
+                               : '0 8px 30px rgba(79, 70, 229, 0.2)',
                           },
                           '&::before': {
                             content: '""',
@@ -507,6 +537,11 @@ const HomePage = () => {
                           }
                         }}
                         onClick={() => handleRecentSearchClick(search)}
+                        onKeyPress={(e) => { // Allow activation with Enter/Space for keyboard users
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            handleRecentSearchClick(search);
+                          }
+                        }}
                       >
                         <CardContent>
                           <Box display="flex" alignItems="center">

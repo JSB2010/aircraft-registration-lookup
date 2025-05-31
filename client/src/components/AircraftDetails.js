@@ -32,6 +32,19 @@ import AirplaneTicketIcon from '@mui/icons-material/AirplaneTicket';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ColorModeContext } from '../App';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+// import L from 'leaflet'; // For custom aircraft icon (example)
+/*
+// Example custom icon (ensure you have an icon file in /public/images or similar)
+const aircraftIcon = new L.Icon({
+  iconUrl: '/images/aircraft-icon.png', // Path relative to the public folder
+  iconSize: [25, 25],        // Size of the icon
+  iconAnchor: [12, 12],      // Point of the icon which will correspond to marker's location
+  popupAnchor: [0, -12]      // Point from which the popup should open relative to the iconAnchor
+});
+*/
+import 'leaflet/dist/leaflet.css';
+import { isFlightActive } from '../utils'; // Import from utils.js
 
 const AircraftDetails = () => {
   const { flightNumber, date, apiProvider = 'flightaware' } = useParams();
@@ -267,7 +280,14 @@ const AircraftDetails = () => {
   let content;
   if (loading) {
     content = (
-      <Box sx={{ textAlign: 'center', py: 6 }} className="fade-in">
+      <Box
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-labelledby="loading-message"
+        sx={{ textAlign: 'center', py: 6 }}
+        className="fade-in"
+      >
         <Box
           sx={{
             position: 'relative',
@@ -306,6 +326,7 @@ const AircraftDetails = () => {
 
         <Box sx={{ mt: 3, mb: 2 }}>
           <Typography
+            id="loading-message"
             variant="h5"
             sx={{
               fontWeight: 700,
@@ -344,6 +365,9 @@ const AircraftDetails = () => {
           <LinearProgress
             variant="determinate"
             value={loadingProgress}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={loadingProgress}
             sx={{
               height: 8,
               borderRadius: 4,
@@ -456,6 +480,7 @@ const AircraftDetails = () => {
     content = (
       <Fade in={!loading} timeout={800}>
         <Box className="staggered-fade-in">
+          {/* Existing content ... */}
           <Box mb={4}>
             <Grid container spacing={2} alignItems="center">
               <Grid item>
@@ -483,10 +508,11 @@ const AircraftDetails = () => {
             </Grid>
           </Box>
 
-          <Card
-            sx={{
-              mb: 4,
-              borderRadius: 3,
+          <Box component="section" aria-labelledby="aircraft-details-title">
+            <Card
+              sx={{
+                mb: 4,
+                borderRadius: 3,
               boxShadow: theme.palette.mode === 'dark'
                 ? '0 4px 20px rgba(0,0,0,0.4)'
                 : '0 4px 20px rgba(0,0,0,0.08)',
@@ -495,8 +521,9 @@ const AircraftDetails = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Typography
+                id="aircraft-details-title"
                 variant="h6"
-                gutterBottom
+                // gutterBottom // Removed to adjust spacing for image/link
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -539,17 +566,49 @@ const AircraftDetails = () => {
                       p: 2,
                       borderRadius: 2,
                       bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                      height: '100%'
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}
                   >
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Aircraft Model
-                    </Typography>
-                    <Typography variant="h5" fontWeight={600}>
-                      {aircraftData.model}
+                    <div>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Aircraft Model
+                      </Typography>
+                      <Typography variant="h5" fontWeight={600} gutterBottom>
+                        {aircraftData.model}
+                      </Typography>
+                    </div>
+                    {aircraftData.model && (
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <a
+                          href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(aircraftData.model + " " + (aircraftData.airline || "") + " aircraft")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: theme.palette.primary.main,
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' }
+                          }}
+                        >
+                          Search for images of {aircraftData.model}
+                        </a>
+                      </Typography>
+                    )}
+                  </Box>
+                </Grid>
+
+                {/* Placeholder for where an image might go if an API was available */}
+                {/*
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 1, mb: 1, textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      (No direct image integration available)
                     </Typography>
                   </Box>
                 </Grid>
+                */}
 
                 {/* Additional FlightAware data if available */}
                 {aircraftData.dataSource === 'FlightAware AeroAPI' && (
@@ -818,11 +877,13 @@ const AircraftDetails = () => {
                 )}
               </Grid>
             </CardContent>
-          </Card>
+            </Card>
+          </Box>
 
           <Grid container spacing={4}>
             <Grid item xs={12} md={6}>
-              <Card
+              <Box component="section" aria-labelledby="departure-details-title" sx={{ height: '100%' }}>
+                <Card
                 sx={{
                   height: '100%',
                   borderRadius: 3,
@@ -845,7 +906,7 @@ const AircraftDetails = () => {
                         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
                       }}
                     />
-                    <Typography variant="h6" fontWeight={600}>Departure</Typography>
+                    <Typography id="departure-details-title" variant="h6" fontWeight={600}>Departure</Typography>
                   </Box>
                   <Typography
                     variant="body1"
@@ -916,11 +977,13 @@ const AircraftDetails = () => {
                     </Box>
                   )}
                 </CardContent>
-              </Card>
+                </Card>
+              </Box>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Card
+              <Box component="section" aria-labelledby="arrival-details-title" sx={{ height: '100%' }}>
+                <Card
                 sx={{
                   height: '100%',
                   borderRadius: 3,
@@ -943,7 +1006,7 @@ const AircraftDetails = () => {
                         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
                       }}
                     />
-                    <Typography variant="h6" fontWeight={600}>Arrival</Typography>
+                    <Typography id="arrival-details-title" variant="h6" fontWeight={600}>Arrival</Typography>
                   </Box>
                   <Typography
                     variant="body1"
@@ -1014,7 +1077,8 @@ const AircraftDetails = () => {
                     </Box>
                   )}
                 </CardContent>
-              </Card>
+                </Card>
+              </Box>
             </Grid>
           </Grid>
 
@@ -1036,6 +1100,41 @@ const AircraftDetails = () => {
               Back to Search
             </Button>
           </Box>
+
+          {/* Live Flight Map Section */}
+          {aircraftData &&
+            aircraftData.last_position && // FlightAware specific structure
+            typeof aircraftData.last_position.latitude === 'number' &&
+            typeof aircraftData.last_position.longitude === 'number' &&
+            !isNaN(parseFloat(aircraftData.last_position.latitude)) &&
+            !isNaN(parseFloat(aircraftData.last_position.longitude)) &&
+            isFlightActive(aircraftData.status) && (
+            <Paper elevation={3} sx={{ mt: 4, p: { xs: 1, sm: 2 }, borderRadius: 3 }} className="glass-morphism">
+              <Typography variant="h6" gutterBottom sx={{ ml: 1, fontWeight: 600, mt:1 }}>
+                Live Flight Position
+              </Typography>
+              <MapContainer
+                center={[parseFloat(aircraftData.last_position.latitude), parseFloat(aircraftData.last_position.longitude)]}
+                zoom={7} // Adjust zoom level as needed
+                style={{ height: '400px', width: '100%', borderRadius: '12px', zIndex: 0 }} // zIndex to ensure it's below other UI elements if necessary
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <Marker
+                  position={[parseFloat(aircraftData.last_position.latitude), parseFloat(aircraftData.last_position.longitude)]}
+                  // icon={aircraftIcon} // Uncomment and use 'aircraftIcon' here if you've defined a custom icon
+                >
+                  <Popup>
+                    Flight: {aircraftData.ident || aircraftData.flightNumber || flightNumber} <br />
+                    {typeof aircraftData.last_position.altitude === 'number' && `Altitude: ${aircraftData.last_position.altitude * 100} ft (reported)`} <br />
+                    {typeof aircraftData.last_position.gs === 'number' && `Speed: ${aircraftData.last_position.gs} knots (ground speed)`}
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </Paper>
+          )}
         </Box>
       </Fade>
     );
@@ -1150,7 +1249,7 @@ const AircraftDetails = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ mt: { xs: 3, md: 5 }, mb: 8 }}>
+      <Container component="main" maxWidth="md" sx={{ mt: { xs: 3, md: 5 }, mb: 8 }}>
         <Paper
           elevation={3}
           className="glass-morphism"

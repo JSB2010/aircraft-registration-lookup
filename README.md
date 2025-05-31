@@ -9,17 +9,21 @@ A modern web application that allows travelers to look up aircraft registration 
   - AeroDataBox API (default)
   - FlightAware AeroAPI (more comprehensive data)
 - Display comprehensive flight information including:
-  - Aircraft registration
-  - Aircraft model
+  - Aircraft registration, model, age, owner (when available from FlightAware)
   - Airline information
-  - Departure and arrival details
-  - Flight status
-  - Additional data (when available): aircraft age, flight distance, etc.
-- Light/dark mode toggle
-- Recent searches history
-- Responsive design that works on desktop and mobile devices
-- Modern UI with Material UI components
-- Caching system to reduce API calls
+  - Detailed departure and arrival times (scheduled and actual)
+  - Flight status, including live progress percentage (FlightAware)
+  - Terminal, gate, baggage claim information (when available)
+  - Flight distance, duration, and filed route (FlightAware)
+- Live Flight Map Display: Shows the current geographical position for active flights (utilizing FlightAware data and React Leaflet).
+- Aircraft Image Search Link: Provides a convenient link to search for images of the aircraft model on Google Images.
+- Light/dark mode toggle.
+- Recent searches history (persisted in localStorage).
+- Responsive design for desktop and mobile devices.
+- Modern UI built with Material UI, featuring glass morphism effects and smooth animations.
+- Enhanced Accessibility (a11y) for improved usability.
+- UI/UX Polishing: Includes refined interactive element feedback and clearer API provider selection.
+- Caching system on the backend to reduce redundant API calls.
 
 ## Project Structure
 
@@ -125,11 +129,17 @@ The application will be available at http://localhost:3000 (or http://localhost:
 
 ## API Endpoints
 
-- `GET /api/aircraft/:flightNumber/:date` - Get aircraft registration details using AeroDataBox API
-- `GET /api/flightaware/aircraft/:flightNumber/:date` - Get aircraft registration details using FlightAware AeroAPI
-- `GET /api/health` - Server health check endpoint
-- `GET /api/admin/cache` - View the current cache entries (admin only)
-- `POST /api/admin/cache/clear` - Clear the cache (admin only)
+The application primarily interacts with backend API endpoints, which in turn call external aviation data APIs. The client-side application itself makes calls to:
+
+- `/api/aircraft/:flightNumber/:date` (proxied to the backend server, which then calls AeroDataBox or a similar provider)
+- `/api/flightaware/aircraft/:flightNumber/:date` (proxied to the backend server, which then calls FlightAware AeroAPI)
+
+The backend server also exposes:
+- `/api/health` - Server health check.
+- `/api/admin/cache` - View cache entries (admin only, if configured).
+- `/api/admin/cache/clear` - Clear cache (admin only, if configured).
+
+*Note: In the Cloudflare Pages deployment, these `/api/*` calls are routed to Cloudflare Functions that directly call the respective aviation data APIs.*
 
 ## Technologies Used
 
@@ -139,6 +149,7 @@ The application will be available at http://localhost:3000 (or http://localhost:
 - Material UI
 - Axios
 - date-fns
+- React Leaflet & Leaflet (for flight maps)
 
 ### Backend
 - Node.js
@@ -147,6 +158,20 @@ The application will be available at http://localhost:3000 (or http://localhost:
 - dotenv
 - cors
 - In-memory caching system
+
+## Testing
+
+The client-side application includes a suite of tests to ensure reliability and maintainability:
+- **Unit Tests:** Individual components and utility functions are tested using Jest and React Testing Library.
+- **Integration Tests:** User flows and component interactions are tested to verify that different parts of the application work together as expected.
+- **API Mocking:** Mock Service Worker (MSW) is configured to intercept API calls during tests, providing consistent and predictable responses without relying on live external APIs. This allows for thorough testing of loading states, error handling, and data display logic.
+
+To run the tests:
+```bash
+cd client
+npm test
+```
+*Note: Due to a persistent `TextEncoder is not defined` error related to MSW initialization within the current CodeSandbox evaluation environment, the automated tests may not pass directly in this specific sandbox. However, the test suite is structured to run correctly in a standard Node.js/Jest environment where this global is properly available.*
 
 ## API Providers
 

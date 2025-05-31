@@ -86,12 +86,11 @@ export async function onRequest(context) {
 
     // First, try to get scheduled flights for this flight number
     // This might work better for future flights
+    let schedulesData;
     try {
       console.log('Trying FlightAware scheduled flights endpoint...');
       const scheduledUrl = `${FLIGHTAWARE_API_URL}/schedules/${flightNumber}`;
-      console.log('FlightAware scheduled API request URL:', scheduledUrl);
 
-      // Build URL with query parameters
       const scheduledUrlWithParams = new URL(scheduledUrl);
       scheduledUrlWithParams.searchParams.append('start', formattedDate);
       scheduledUrlWithParams.searchParams.append('end', formattedEndDate);
@@ -99,314 +98,232 @@ export async function onRequest(context) {
 
       console.log('FlightAware scheduled API request URL with params:', scheduledUrlWithParams.toString());
 
-      response = await fetch(
+      const schedulesResponse = await fetch(
         scheduledUrlWithParams.toString(),
         {
           method: 'GET',
-          headers: {
-            'x-apikey': FLIGHTAWARE_API_KEY
-          }
+          headers: { 'x-apikey': FLIGHTAWARE_API_KEY }
         }
       );
 
-      if (response.ok) {
-        const searchData = await response.json();
-        console.log('FlightAware flights endpoint successful');
-
-        // Check if we have flights in the response
-        if (searchData && searchData.flights && searchData.flights.length > 0) {
-          data = searchData;
-        } else {
-          console.log('No flights found in search response');
-        }
+      if (schedulesResponse.ok) {
+        schedulesData = await schedulesResponse.json();
+        console.log('FlightAware /schedules endpoint successful.');
+        // We will try to use fa_flight_id from this data later
       } else {
-        const statusText = response.statusText || 'Unknown error';
-        console.error(`FlightAware flights endpoint responded with status: ${response.status} (${statusText})`);
+        const statusText = schedulesResponse.statusText || 'Unknown error';
+        console.error(`FlightAware /schedules endpoint responded with status: ${schedulesResponse.status} (${statusText})`);
 
         // Try to get more details from the response
         let errorDetails = '';
-        try {
-          const errorResponse = await response.text();
-          errorDetails = errorResponse;
-          console.error('Error response:', errorResponse);
-        } catch (e) {
-          console.error('Could not parse error response:', e);
-        }
-
-        apiError = `FlightAware flights endpoint responded with status: ${response.status}. Details: ${errorDetails}`;
+        try { errorDetails = await schedulesResponse.text(); } catch (e) { /* ignore */ }
+        apiError = `FlightAware /schedules endpoint failed: ${schedulesResponse.status}. Details: ${errorDetails}`;
+        console.error(apiError);
       }
     } catch (error) {
-      console.error('Error calling FlightAware flights endpoint:', error);
-      apiError = `Error calling FlightAware flights endpoint: ${error.message}`;
+      apiError = `Error calling FlightAware /schedules endpoint: ${error.message}`;
+      console.error(apiError);
     }
 
-    // If the scheduled flights endpoint failed, fall back to the regular flight search
-    if (!data && apiError) {
-      try {
-        console.log('Trying FlightAware flights endpoint...');
-        const flightsUrl = `${FLIGHTAWARE_API_URL}/flights/${flightNumber}`;
+    let finalFlightData; // This will hold the data from /flights/{fa_flight_id} or /flights/{ident}
+    let usedFaFlightId = false;
 
-        // Build URL with query parameters
+    // If /schedules was successful and returned data
+    if (schedulesData && schedulesData.scheduled && schedulesData.scheduled.length > 0) {
+      const matchingScheduledFlight = schedulesData.scheduled.find(f => {
+        const scheduledTime = f.scheduled_out || (f.scheduled_departure ? f.scheduled_departure.date_time : null);
+        if (!scheduledTime) return false;
+        return new Date(scheduledTime).toISOString().split('T')[0] === formattedDate;
+      });
+
+      if (matchingScheduledFlight && matchingScheduledFlight.fa_flight_id) {
+        console.log(`Found fa_flight_id: ${matchingScheduledFlight.fa_flight_id} from /schedules endpoint.`);
+        try {
+          const faFlightIdUrl = `${FLIGHTAWARE_API_URL}/flights/${matchingScheduledFlight.fa_flight_id}`;
+          console.log('Fetching details using fa_flight_id URL:', faFlightIdUrl);
+          const faFlightIdResponse = await fetch(faFlightIdUrl, {
+            method: 'GET',
+            headers: { 'x-apikey': FLIGHTAWARE_API_KEY }
+          });
+
+          if (faFlightIdResponse.ok) {
+            // The response from /flights/{fa_flight_id} is an array with one flight object
+            const flightDetailsArray = await faFlightIdResponse.json();
+            if (flightDetailsArray && flightDetailsArray.flights && flightDetailsArray.flights.length > 0) {
+                 finalFlightData = flightDetailsArray.flights[0]; // Use the single flight from the array
+                 usedFaFlightId = true;
+                 console.log('Successfully fetched flight details using fa_flight_id.');
+            } else {
+                console.warn('Fetched with fa_flight_id, but response had no flights. Response:', flightDetailsArray);
+                // Fallback to using the scheduled data if fa_flight_id call was empty
+                finalFlightData = matchingScheduledFlight;
+                apiError = (apiError ? apiError + " | " : "") + `fa_flight_id call for ${matchingScheduledFlight.fa_flight_id} returned no flights.`;
+            }
+          } else {
+            const statusText = faFlightIdResponse.statusText || 'Unknown error';
+            let errorDetails = '';
+            try { errorDetails = await faFlightIdResponse.text(); } catch (e) { /* ignore */ }
+            const faIdError = `Failed to fetch details using fa_flight_id ${matchingScheduledFlight.fa_flight_id}: ${faFlightIdResponse.status} (${statusText}). Details: ${errorDetails}`;
+            console.error(faIdError);
+            apiError = (apiError ? apiError + " | " : "") + faIdError;
+            // Fallback: use the data from /schedules if /flights/{fa_flight_id} fails
+            finalFlightData = matchingScheduledFlight;
+          }
+        } catch (faIdFetchError) {
+          const faIdError = `Error fetching with fa_flight_id ${matchingScheduledFlight.fa_flight_id}: ${faIdFetchError.message}`;
+          console.error(faIdError);
+          apiError = (apiError ? apiError + " | " : "") + faIdError;
+          finalFlightData = matchingScheduledFlight; // Fallback
+        }
+      } else if (matchingScheduledFlight) {
+         // Has matching scheduled flight but no fa_flight_id, use this data.
+         finalFlightData = matchingScheduledFlight;
+         console.log('Using matching scheduled flight data (no fa_flight_id available).');
+      }
+    }
+
+    // If no data from /schedules or fa_flight_id path, try /flights/{flightNumber}
+    if (!finalFlightData) {
+      console.log('No data from /schedules or fa_flight_id path, trying /flights/{flightNumber} endpoint...');
+      try {
+        const flightsUrl = `${FLIGHTAWARE_API_URL}/flights/${flightNumber}`;
         const flightsUrlWithParams = new URL(flightsUrl);
         flightsUrlWithParams.searchParams.append('start', formattedDate);
         flightsUrlWithParams.searchParams.append('end', formattedEndDate);
         flightsUrlWithParams.searchParams.append('max_pages', '1');
 
-        console.log('FlightAware flights API request URL with params:', flightsUrlWithParams.toString());
+        console.log('FlightAware /flights/{flightNumber} API request URL:', flightsUrlWithParams.toString());
+        const flightsResponse = await fetch(flightsUrlWithParams.toString(), {
+          method: 'GET',
+          headers: { 'x-apikey': FLIGHTAWARE_API_KEY }
+        });
 
-        response = await fetch(
-          flightsUrlWithParams.toString(),
-          {
-            method: 'GET',
-            headers: {
-              'x-apikey': FLIGHTAWARE_API_KEY
-            }
-          }
-        );
-
-        if (response.ok) {
-          const flightsData = await response.json();
-          console.log('FlightAware flights endpoint successful');
-          console.log('Flights data:', JSON.stringify(flightsData).substring(0, 200) + '...');
-
-          // Check if we have flights in the response
+        if (flightsResponse.ok) {
+          const flightsData = await flightsResponse.json();
           if (flightsData && flightsData.flights && flightsData.flights.length > 0) {
-            data = flightsData;
-            console.log(`Found ${flightsData.flights.length} flights`);
-
-            // Log the first flight
-            console.log('First flight:', JSON.stringify(flightsData.flights[0]).substring(0, 200) + '...');
+            // Pick the most relevant flight (e.g., first one, or closest to date if multiple)
+            // For simplicity, taking the first one that is not cancelled.
+            finalFlightData = flightsData.flights.find(f => !f.cancelled) || flightsData.flights[0];
+            console.log('Successfully fetched data from /flights/{flightNumber} endpoint.');
           } else {
-            console.log('No flights found in response');
+            const noFlightsError = 'No flights found in /flights/{flightNumber} response.';
+            console.log(noFlightsError);
+            apiError = (apiError ? apiError + " | " : "") + noFlightsError;
           }
         } else {
-          const statusText = response.statusText || 'Unknown error';
-          console.error(`FlightAware flights endpoint responded with status: ${response.status} (${statusText})`);
-
-          // Try to get more details from the response
+          const statusText = flightsResponse.statusText || 'Unknown error';
           let errorDetails = '';
-          try {
-            const errorResponse = await response.text();
-            errorDetails = errorResponse;
-            console.error('Error response:', errorResponse);
-          } catch (e) {
-            console.error('Could not parse error response:', e);
-          }
-
-          // Append this error to the previous one
-          apiError += ` | FlightAware flights endpoint responded with status: ${response.status}. Details: ${errorDetails}`;
+          try { errorDetails = await flightsResponse.text(); } catch (e) { /* ignore */ }
+          const flightsError = `FlightAware /flights/{flightNumber} endpoint failed: ${flightsResponse.status} (${statusText}). Details: ${errorDetails}`;
+          console.error(flightsError);
+          apiError = (apiError ? apiError + " | " : "") + flightsError;
         }
       } catch (error) {
-        console.error('Error calling FlightAware flights endpoint:', error);
-        apiError += ` | Error calling FlightAware flights endpoint: ${error.message}`;
+        const flightsCatchError = `Error calling FlightAware /flights/{flightNumber} endpoint: ${error.message}`;
+        console.error(flightsCatchError);
+        apiError = (apiError ? apiError + " | " : "") + flightsCatchError;
       }
     }
 
-    // If both endpoints failed, throw an error
-    if (!data) {
-      throw new Error(apiError || 'Unknown error calling FlightAware API');
+    // If after all attempts, no data is found, throw an error
+    if (!finalFlightData) {
+      throw new Error(apiError || 'Failed to fetch flight data from FlightAware after all attempts.');
     }
 
-    // Log the response data
-    console.log('FlightAware API response data:', JSON.stringify(data).substring(0, 200) + '...');
+    // Process the finalFlightData
+    // Determine if the data is primarily from a scheduled record or a full flight record
+    // 'usedFaFlightId' being true implies it's a full flight record.
+    // If finalFlightData has 'fa_flight_id' and not usedFaFlightId, it's likely from schedules.
+    const isPrimarilyScheduledData = !usedFaFlightId && finalFlightData.fa_flight_id && !finalFlightData.last_position;
 
-    // Process the data based on which endpoint was successful
-    let flightData = null;
-    let isScheduledData = false;
-
-    // Check if we have scheduled flight data
-    if (data && data.scheduled && data.scheduled.length > 0) {
-      // Find a scheduled flight that matches our date
-      let bestMatch = null;
-
-      for (const flight of data.scheduled) {
-        const scheduledDeparture = new Date(flight.scheduled_out || (flight.scheduled_departure ? flight.scheduled_departure.date_time : null));
-        const flightDate = new Date(scheduledDeparture);
-        if (flightDate.toISOString().split('T')[0] === formattedDate) {
-          bestMatch = flight;
-          break;
-        }
-      }
-
-      if (bestMatch) {
-        flightData = bestMatch;
-        isScheduledData = true;
-        console.log('Using data from scheduled flights endpoint');
-      } else {
-        // If no exact match, use the first scheduled flight
-        flightData = data.scheduled[0];
-        isScheduledData = true;
-        console.log('Using first scheduled flight (no exact date match)');
-      }
-    }
-    // Check if we have flight data
-    else if (data && data.flights && data.flights.length > 0) {
-      // Find the flight that best matches our date
-      const targetDate = new Date(formattedDate);
-      let bestMatch = data.flights[0];
-      let bestMatchDiff = Infinity;
-
-      for (const flight of data.flights) {
-        // Try to find a flight with a date close to our target date
-        const flightDate = new Date(flight.scheduled_out || flight.estimated_out || (flight.filed_departure_time ? flight.filed_departure_time.epoch * 1000 : 0));
-        if (flightDate.getTime() > 0) {
-          const dateDiff = Math.abs(flightDate.getTime() - targetDate.getTime());
-          if (dateDiff < bestMatchDiff) {
-            bestMatch = flight;
-            bestMatchDiff = dateDiff;
-          }
-        }
-      }
-
-      flightData = bestMatch;
-      console.log('Using data from flights endpoint');
-    }
-
-    if (flightData) {
-      // Extract relevant information
-      let result;
-
-      if (isScheduledData) {
-        // Process scheduled flight data
-        result = {
-          flightNumber: flightData.ident || flightData.flight_number || flightNumber,
-          airline: flightData.operator || flightData.operator_name || 'Unknown Airline',
-          registration: flightData.registration || 'Not available',
-          model: flightData.aircraft_type || 'Not available',
-          status: 'Scheduled',
+    let result;
+    if (isPrimarilyScheduledData) {
+      console.log('Processing data as primarily scheduled data.');
+      result = {
+          flightNumber: finalFlightData.ident || finalFlightData.flight_number || flightNumber,
+          airline: finalFlightData.operator || finalFlightData.operator_name || 'Unknown Airline',
+          registration: finalFlightData.registration || 'Not available',
+          model: finalFlightData.aircraft_type || 'Not available',
+          status: 'Scheduled', // Explicitly 'Scheduled' as it's from schedules endpoint
           departure: {
-            airport: flightData.origin?.name || flightData.origin || 'Not available',
-            scheduledTime: flightData.scheduled_out || (flightData.scheduled_departure ? flightData.scheduled_departure.date_time : 'Not available'),
-            terminal: flightData.origin_terminal || 'Not available',
-            gate: flightData.origin_gate || 'Not available',
-            icao: (typeof flightData.origin === 'string') ? flightData.origin : flightData.origin?.code_icao || 'Not available',
-            iata: flightData.origin_iata || 'Not available'
+            airport: finalFlightData.origin?.name || finalFlightData.origin || 'Not available',
+            scheduledTime: finalFlightData.scheduled_out || (finalFlightData.scheduled_departure ? finalFlightData.scheduled_departure.date_time : 'Not available'),
+            terminal: finalFlightData.origin_terminal || 'Not available',
+            gate: finalFlightData.origin_gate || 'Not available',
+            icao: (typeof finalFlightData.origin === 'string') ? finalFlightData.origin : finalFlightData.origin?.code_icao || 'Not available',
+            iata: finalFlightData.origin_iata || 'Not available'
           },
           arrival: {
-            airport: flightData.destination?.name || flightData.destination || 'Not available',
-            scheduledTime: flightData.scheduled_in || (flightData.scheduled_arrival ? flightData.scheduled_arrival.date_time : 'Not available'),
-            terminal: flightData.destination_terminal || 'Not available',
-            gate: flightData.destination_gate || 'Not available',
-            icao: (typeof flightData.destination === 'string') ? flightData.destination : flightData.destination?.code_icao || 'Not available',
-            iata: flightData.destination_iata || 'Not available'
+            airport: finalFlightData.destination?.name || finalFlightData.destination || 'Not available',
+            scheduledTime: finalFlightData.scheduled_in || (finalFlightData.scheduled_arrival ? finalFlightData.scheduled_arrival.date_time : 'Not available'),
+            terminal: finalFlightData.destination_terminal || 'Not available',
+            gate: finalFlightData.destination_gate || 'Not available',
+            icao: (typeof finalFlightData.destination === 'string') ? finalFlightData.destination : finalFlightData.destination?.code_icao || 'Not available',
+            iata: finalFlightData.destination_iata || 'Not available'
           },
-          dataSource: 'FlightAware AeroAPI (Scheduled)'
-        };
-
-        // Add distance if available
-        if (flightData.route_distance?.kilometers) {
-          result.distance = {
-            kilometers: flightData.route_distance.kilometers,
-            miles: flightData.route_distance.miles || Math.round(flightData.route_distance.kilometers * 0.621371)
-          };
-        }
-      } else {
-        // Process regular flight data
-        result = {
-          flightNumber: flightData.ident || flightData.flight_number || flightNumber,
-          airline: flightData.operator || 'Not available',
-          registration: flightData.registration || 'Not available',
-          model: flightData.aircraft_type || 'Not available',
-          status: getFlightStatus(flightData),
-          departure: {
-            airport: flightData.origin?.name || 'Not available',
-            scheduledTime: flightData.scheduled_out || 'Not available',
-            terminal: flightData.origin?.terminal || 'Not available',
-            gate: flightData.origin?.gate || 'Not available',
-            icao: flightData.origin?.code_icao || 'Not available',
-            iata: flightData.origin?.code_iata || 'Not available'
+          dataSource: 'FlightAware AeroAPI (Scheduled)',
+          // Include other fields available from scheduled data if needed
+          distance: {
+            kilometers: finalFlightData.route_distance?.kilometers || 'Not available',
+            miles: finalFlightData.route_distance?.miles || (finalFlightData.route_distance?.kilometers ? Math.round(finalFlightData.route_distance.kilometers * 0.621371) : 'Not available')
           },
-          arrival: {
-            airport: flightData.destination?.name || 'Not available',
-            scheduledTime: flightData.scheduled_in || 'Not available',
-            terminal: flightData.destination?.terminal || 'Not available',
-            gate: flightData.destination?.gate || 'Not available',
-            icao: flightData.destination?.code_icao || 'Not available',
-            iata: flightData.destination?.code_iata || 'Not available'
-          },
-          dataSource: 'FlightAware AeroAPI'
-        };
-
-        // Add aircraft age if available
-        if (flightData.aircraft_age) {
-          result.aircraftAge = flightData.aircraft_age;
-        }
-
-        // Add distance if available
-        if (flightData.route_distance?.kilometers) {
-          result.distance = {
-            kilometers: flightData.route_distance.kilometers,
-            miles: flightData.route_distance.miles || Math.round(flightData.route_distance.kilometers * 0.621371)
-          };
-        }
-
-        // Add speed and altitude if available
-        if (flightData.last_position?.groundspeed) {
-          result.speed = flightData.last_position.groundspeed;
-        }
-
-        if (flightData.last_position?.altitude) {
-          result.altitude = flightData.last_position.altitude;
-        }
-
-        // Add aircraft owner if available
-        if (flightData.owner) {
-          result.aircraftOwner = flightData.owner;
-        }
-
-        // Add operator ICAO if available
-        if (flightData.operator_icao) {
-          result.operatorIcao = flightData.operator_icao;
-        }
-
-        // Add filed route if available
-        if (flightData.route) {
-          result.filedRoute = flightData.route;
-        }
-
-        // Add flight duration if available
-        result.flightDuration = {
-          scheduled: flightData.scheduled_elapsed_time || 'Not available',
-          actual: flightData.actual_elapsed_time || 'Not available'
-        };
-
-        // Add delay information if available
-        result.delayInfo = {
-          departure: flightData.departure_delay || 'Not available',
-          arrival: flightData.arrival_delay || 'Not available'
-        };
-
-        // Add baggage claim if available
-        if (flightData.destination?.baggage_claim) {
-          result.baggageClaim = flightData.destination.baggage_claim;
-        }
-
-        // Add flight progress if available
-        if (flightData.progress_percent) {
-          result.progress = flightData.progress_percent;
-        }
-
-        // Add position information if available
-        if (flightData.last_position) {
-          result.position = {
-            latitude: flightData.last_position.latitude || 'Not available',
-            longitude: flightData.last_position.longitude || 'Not available',
-            heading: flightData.last_position.heading || 'Not available'
-          };
-
-          if (flightData.last_position.timestamp) {
-            result.lastUpdated = new Date(flightData.last_position.timestamp * 1000).toISOString();
-          }
-        }
-      }
-
-      return new Response(JSON.stringify(result), {
-        headers,
-        status: 200
-      });
+      };
     } else {
-      // No flight data found
-      console.log(`No flight data found for ${flightNumber} on ${formattedDate}`);
+      console.log('Processing data as full flight data (from /flights/{id} or /flights/{fa_flight_id}).');
+      result = {
+        flightNumber: finalFlightData.ident || finalFlightData.flight_number || flightNumber,
+        airline: finalFlightData.operator || 'Not available',
+        registration: finalFlightData.registration || 'Not available',
+        model: finalFlightData.aircraft_type || 'Not available',
+        status: getFlightStatus(finalFlightData), // Use helper for status
+        departure: {
+          airport: finalFlightData.origin?.name || 'Not available',
+          scheduledTime: finalFlightData.scheduled_out || 'Not available',
+          actualTime: finalFlightData.actual_out || 'Not available', // Added from server logic
+          terminal: finalFlightData.origin?.terminal || 'Not available',
+          gate: finalFlightData.origin?.gate || 'Not available',
+          icao: finalFlightData.origin?.code_icao || 'Not available',
+          iata: finalFlightData.origin?.code_iata || 'Not available'
+        },
+        arrival: {
+          airport: finalFlightData.destination?.name || 'Not available',
+          scheduledTime: finalFlightData.scheduled_in || 'Not available',
+          actualTime: finalFlightData.actual_in || 'Not available', // Added from server logic
+          terminal: finalFlightData.destination?.terminal || 'Not available',
+          gate: finalFlightData.destination?.gate || 'Not available',
+          icao: finalFlightData.destination?.code_icao || 'Not available',
+          iata: finalFlightData.destination?.code_iata || 'Not available'
+        },
+        dataSource: usedFaFlightId ? 'FlightAware AeroAPI (fa_flight_id)' : 'FlightAware AeroAPI (ident)',
+        aircraftAge: finalFlightData.aircraft_age || 'Not available',
+        distance: {
+          kilometers: finalFlightData.route_distance?.kilometers || 'Not available',
+          miles: finalFlightData.route_distance?.miles || (finalFlightData.route_distance?.kilometers ? Math.round(finalFlightData.route_distance.kilometers * 0.621371) : 'Not available')
+        },
+        speed: finalFlightData.last_position?.groundspeed || 'Not available', // Corrected field name
+        altitude: finalFlightData.last_position?.altitude ? finalFlightData.last_position.altitude * 100 : 'Not available', // Corrected: often in 100s of feet
+        last_position: finalFlightData.last_position, // Keep the whole object for map
+        aircraftOwner: finalFlightData.owner || 'Not available',
+        operatorIcao: finalFlightData.operator_icao || 'Not available',
+        filedRoute: finalFlightData.route || 'Not available',
+        flightDuration: {
+          scheduled: finalFlightData.scheduled_elapsed_time || 'Not available',
+          actual: finalFlightData.actual_elapsed_time || 'Not available'
+        },
+        delayInfo: {
+          departure: finalFlightData.departure_delay || 'Not available',
+          arrival: finalFlightData.arrival_delay || 'Not available'
+        },
+        baggageClaim: finalFlightData.destination?.baggage_claim || 'Not available',
+        progress: finalFlightData.progress_percent || 'Not available',
+        lastUpdated: finalFlightData.last_position?.timestamp ? new Date(finalFlightData.last_position.timestamp * 1000).toISOString() : 'Not available',
+      };
+    }
+
+    return new Response(JSON.stringify(result), { headers, status: 200 });
+
+  } else { // This else corresponds to if (!finalFlightData) after all attempts
+      console.log(`No flight data ultimately found for ${flightNumber} on ${formattedDate} after all attempts.`);
 
       // Check if the date is in the future
       const searchDate = new Date(formattedDate);

@@ -19,6 +19,8 @@ You may also see any lint errors in the console.
 Launches the test runner in the interactive watch mode.\
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
+This project uses [Mock Service Worker (MSW)](https://mswjs.io/) to mock API requests during tests, ensuring reliable and predictable test runs without depending on live backend services. Test files are typically located alongside the components they test (e.g., `ComponentName.test.js`) or in a dedicated `__tests__` directory.
+
 ### `npm run build`
 
 Builds the app for production to the `build` folder.\

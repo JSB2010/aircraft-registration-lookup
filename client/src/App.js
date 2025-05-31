@@ -215,7 +215,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Container maxWidth="lg" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <Box component="main" sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1 }}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/aircraft/:flightNumber/:date" element={<AircraftDetails />} />
